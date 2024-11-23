@@ -5,21 +5,22 @@ use mongodb::bson::{self, doc, Document};
 use mongodb::Collection;
 use crate::domain::course::Course;
 use crate::domain::user::User;
-use crate::infrastructure::repositories::DbRepositoryAbstract;
+use crate::infrastructure::repositories::db_repository_abstract::DbRepositoryAbstract;
+
 
 pub struct DbAdapter {
     pub collection: Collection<Document>,
 }
 
-// impl DbAdapter {
-//     pub fn new(collection: Collection<Document>) -> Self {
-//         DbAdapter { collection }
-//     }
-// }
+impl DbAdapter {
+    pub fn new(collection: Collection<Document>) -> Self {
+        DbAdapter { collection }
+    }
+}
 
 impl DbRepositoryAbstract for DbAdapter {
-    async fn update_user_info(db: mongodb::Collection<bson::Document>, token: &String, user: User) -> Result<(), mongodb::error::Error> {
-        match db.update_one(
+    async fn update_user_info(&self, token: &String, user: User) -> Result<(), mongodb::error::Error> {
+        match self.collection.update_one(
             bson::doc! {"token": token},
             bson::doc! {
                 "$set": {"user_info": bson::to_bson(&user).unwrap()}
@@ -31,10 +32,10 @@ impl DbRepositoryAbstract for DbAdapter {
         }
     }
     
-    async fn get_users_tokens(db: mongodb::Collection<bson::Document>) -> Result<Vec<String>, mongodb::error::Error> {
+    async fn get_users_tokens(&self) -> Result<Vec<String>, mongodb::error::Error> {
         let mut tokens: Vec<String> = Vec::new();
         let filter = doc! {"token": {"$exists": true}};
-        let mut cursor = db.find(filter, None).await?;
+        let mut cursor = self.collection.find(filter, None).await?;
         while let Some(doc) = cursor.try_next().await? {
             if let Some(token) = doc.get_str("token").ok() {
                 tokens.push(token.to_string());
@@ -43,10 +44,10 @@ impl DbRepositoryAbstract for DbAdapter {
         Ok(tokens)
     }
     
-    async fn get_tokens_and_ids(db: mongodb::Collection<bson::Document>) -> Result<Vec<(String, String)>, mongodb::error::Error> {
+    async fn get_tokens_and_ids(&self) -> Result<Vec<(String, String)>, mongodb::error::Error> {
         let mut tokens_and_ids: Vec<(String, String)> = Vec::new();
         let filter = doc! {"token": {"$exists": true}, "user_info": {"$exists": true}};
-        let mut cursor = db.find(filter, None).await?;
+        let mut cursor = self.collection.find(filter, None).await?;
         while let Some(doc) = cursor.try_next().await? {
             if let Some(token) = doc.get_str("token").ok() {
                 if let Some(user_info) = doc.get_document("user_info").ok() {
@@ -59,8 +60,8 @@ impl DbRepositoryAbstract for DbAdapter {
         Ok(tokens_and_ids)
     }
     
-    async fn update_courses_info(db: mongodb::Collection<bson::Document>, token: &String, courses: Vec<Course>) -> Result<(), mongodb::error::Error> {
-        match db.update_one(
+    async fn update_courses_info(&self, token: &String, courses: Vec<Course>) -> Result<(), mongodb::error::Error> {
+        match self.collection.update_one(
             bson::doc! {"token": token},
             bson::doc! {
                 "$set": {"courses": bson::to_bson(&courses).unwrap()}

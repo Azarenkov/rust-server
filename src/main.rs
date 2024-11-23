@@ -4,12 +4,12 @@ mod infrastructure;
 mod application;
 
 use std::error::Error;
+use infrastructure::db::get_database;
 use tokio::time::{sleep, Duration};
 use mongodb::bson::{self};
-use infrastructure::{db::get_database, repositories::DbRepositoryAbstract};
-use application::services::{sync_data_with_database, sync_courses_with_database};
-use adapters::db::db_adapter::DbAdapter;
-use adapters::api::client::ApiClient;
+// use application::sync_service::{SyncServiceAbstract};
+use application::services::sync_service::SyncService;
+use application::repositories::sync_service_abstract::SyncServiceAbstract;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -19,10 +19,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let token = "711abc349948337f8b97cbb01b76adf5";
 
-    
-    sync_data_with_database(users.clone()).await;
+    let service = SyncService::new(users.clone());
+    service.sync_data_with_database().await;
+    service.sync_courses_with_database().await;
 
-    sync_courses_with_database(users.clone()).await;    
+    
+    // sync_data_with_database(users.clone()).await;
+
+    // sync_courses_with_database(users.clone()).await;    
 
     // loop {
     //     match api_client.get_user().await {

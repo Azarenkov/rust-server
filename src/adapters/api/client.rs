@@ -44,18 +44,19 @@ impl ApiClient {
         Ok(response)
     }
 
-    // pub async fn get_courses(&self) -> Result<Course, reqwest::Error> {
-    //     let function = Functions::GetAllCourses.new();
+    pub async fn get_courses(&self) -> Result<Vec<Course>, reqwest::Error> {
+        let function = Functions::GetAllCourses.new();
 
-    //     let url = format!("{}{}{}{}",
-    //         self.base_url,
-    //         self.token,
-    //         format!("&wsfunction={}", function),
-    //         self.format
-    //     );
-    //     println!("{}", url);
+        let url = format!("{}{}{}{}{}",
+            self.base_url,
+            self.token,
+            format!("&wsfunction={}", function),
+            self.format,
+            format!("&userid={}", self.user_id.clone().unwrap_or_default())
+        );
+        println!("{}", url);
 
-    //     let response = self.client.get(&url).send().await?.json::<Course>().await?;
-    //     Ok(response)
-    // }
+        let response = self.client.get(&url).send().await?.json::<Vec<Course>>().await?;
+        Ok(response)
+    }
 }

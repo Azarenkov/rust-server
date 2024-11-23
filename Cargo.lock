@@ -1315,6 +1315,7 @@ dependencies = [
 name = "rust-server"
 version = "0.1.0"
 dependencies = [
+ "futures-util",
  "mongodb",
  "reqwest",
  "serde",

@@ -4,6 +4,8 @@ use futures_util::TryStreamExt;
 use mongodb::bson::{self, doc, Document};
 use mongodb::Collection;
 use crate::domain::course::Course;
+use crate::domain::full_info::UserCourseInfo;
+use crate::domain::grade::GradeItems;
 use crate::domain::user::User;
 use crate::infrastructure::repositories::db_repository_abstract::DbRepositoryAbstract;
 
@@ -65,6 +67,42 @@ impl DbRepositoryAbstract for DbAdapter {
             bson::doc! {"token": token},
             bson::doc! {
                 "$set": {"courses": bson::to_bson(&courses).unwrap()}
+            },
+            None
+        ).await {
+            Ok(_) => Ok(()),
+        Err(e) =>  Err(e),
+        }
+    }
+    
+    async fn get_tokens_and_userdid_and_courses(&self) -> Result<Vec<UserCourseInfo>, mongodb::error::Error> {
+        let mut tokens_and_info: Vec<UserCourseInfo> = Vec::new();
+        let filter = doc! {"token": {"$exists": true}, "user_info": {"$exists": true}, "courses": {"$exists": true}};
+        let mut cursor = self.collection.find(filter, None).await?;
+        while let Some(doc) = cursor.try_next().await? {
+            if let Some(token) = doc.get_str("token").ok() {
+                if let Some(user_info) = doc.get_document("user_info").ok() {
+                    if let Some(user_id) = user_info.get_i64("userid").ok() {
+                        if let Some(courses_info) = doc.get_array("courses").ok() {
+                            let courses: Vec<Course> = courses_info.iter().filter_map(|course| bson::from_bson(course.clone()).ok()).collect();
+                            tokens_and_info.push(UserCourseInfo {
+                                token: token.to_string(),
+                                user_id: user_id,
+                                courses,
+                            });
+                        }
+                    }
+                }
+            }
+        }
+        Ok(tokens_and_info)
+    }
+    
+    async fn update_grades_info(&self, token: &String, grades: Vec<GradeItems>) -> Result<(), mongodb::error::Error> {
+        match self.collection.update_one(
+            bson::doc! {"token": token},
+            bson::doc! {
+                "$set": {"grades": bson::to_bson(&grades).unwrap()}
             },
             None
         ).await {

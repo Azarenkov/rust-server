@@ -2,9 +2,8 @@
 
 use reqwest::Client;
 use super::helpers::Functions;
-use crate::domain::{user, course};
-use user::User;
-use course::Course;
+use crate::domain::{course::Course, grade::Grades, user::User};
+
 
 // use crate::user_traits::UserTrait;
 
@@ -38,7 +37,6 @@ impl ApiClient {
             format!("&wsfunction={}", function),
             self.format
         );
-        println!("{}", url);
 
         let response = self.client.get(&url).send().await?.json::<User>().await?;
         Ok(response)
@@ -54,9 +52,26 @@ impl ApiClient {
             self.format,
             format!("&userid={}", self.user_id.clone().unwrap_or_default())
         );
-        println!("{}", url);
 
         let response = self.client.get(&url).send().await?.json::<Vec<Course>>().await?;
+        Ok(response)
+    }
+
+    pub async fn get_grades(&self) -> Result<Grades, reqwest::Error> {
+        let function = Functions::GetGrades.new();
+
+        let url = format!("{}{}{}{}{}{}",
+            self.base_url,
+            self.token,
+            format!("&wsfunction={}", function),
+            self.format,
+            format!("&userid={}", self.user_id.clone().unwrap_or_default()),
+            format!("&courseid={}", self.course_id.clone().unwrap_or_default())
+        );
+
+        println!("{}", url);
+
+        let response = self.client.get(&url).send().await?.json::<Grades>().await?;
         Ok(response)
     }
 }

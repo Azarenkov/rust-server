@@ -1,5 +1,6 @@
 use mongodb::bson::{self};
 use crate::adapters::api::client::ApiClient;
+use crate::adapters::db;
 use crate::adapters::db::db_adapter::{self, DbAdapter};
 use crate::application::repositories::sync_service_abstract::SyncServiceAbstract;
 use crate::infrastructure::repositories::db_repository_abstract::DbRepositoryAbstract;
@@ -64,10 +65,40 @@ impl SyncServiceAbstract for SyncService {
                 },
                 Err(e) => {
                     println!("{:#?}", e);
-                    continue;
+                    return Err(SyncError::ApiError(e))
                 },
             }
         }
+        Ok(())
+    }
+    
+    async fn sync_grades_with_database(&self) -> Result<(), SyncError> {
+        let db = DbAdapter::new(self.db.clone());
+        let vectors = db.get_tokens_and_userdid_and_courses().await?;
+
+        for vector in vectors {
+            let courses = vector.courses;
+            let mut grades_data = Vec::new();
+
+            for course in courses {
+                let api_client = ApiClient::new(&vector.token, Some(vector.user_id.to_string()), Some(course.id.to_string()));
+                match api_client.get_grades().await {
+                    Ok(grades) => {
+                        grades.usergrades.clone().into_iter().for_each(|mut grade|{
+                            grade.coursename = Some(course.fullname.clone());
+                            grades_data.push(grade);
+                        });
+                        
+                    },
+                    Err(e) => {
+                        println!("{:#?}", e);
+                        return Err(SyncError::ApiError(e))
+                    },
+                }
+            }
+            db.update_grades_info(&vector.token, grades_data).await?;
+        }
+        // println!("{:#?}", grades_data);
         Ok(())
     }
 }

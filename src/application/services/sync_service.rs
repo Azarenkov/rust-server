@@ -5,6 +5,7 @@ use crate::adapters::db::db_adapter::{self, DbAdapter};
 use crate::application::repositories::sync_service_abstract::SyncServiceAbstract;
 use crate::infrastructure::repositories::db_repository_abstract::DbRepositoryAbstract;
 use crate::application::utils::errors::SyncError;
+use chrono::Utc;
 
 pub struct SyncService {
     pub db: mongodb::Collection<bson::Document>,
@@ -99,6 +100,35 @@ impl SyncServiceAbstract for SyncService {
             db.update_grades_info(&vector.token, grades_data).await?;
         }
         // println!("{:#?}", grades_data);
+        Ok(())
+    }
+    
+    async fn sync_deadlines_with_database(&self) -> Result<(), SyncError> {
+
+        let db = DbAdapter::new(self.db.clone());
+        let tokens = db.get_users_tokens().await?;
+
+        for token in tokens {
+
+            let api_client = ApiClient::new(&token, None, None);
+            let mut deadlines_data = Vec::new();
+
+            match api_client.get_deadlines().await {
+                Ok(deadlines) => {
+                    deadlines.events.clone().into_iter().for_each(|deadline|{
+                        let current_time = Utc::now().with_timezone(&chrono::FixedOffset::east(6 * 3600));
+                        let current_unix_time = current_time.timestamp();
+
+                        if (deadline.timeusermidnight + 1800) > current_unix_time.try_into().unwrap() {
+                            deadlines_data.push(deadline);
+                        }
+
+                    });
+                },
+                Err(e) => return Err(SyncError::ApiError(e)),
+            }
+            db.update_deadline_info(&token, deadlines_data).await?;
+        }
         Ok(())
     }
 }

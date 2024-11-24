@@ -1,8 +1,10 @@
 // use std::fmt::format;
 
+use core::error;
+
 use reqwest::Client;
 use super::helpers::Functions;
-use crate::domain::{course::Course, grade::Grades, user::User};
+use crate::domain::{course::Course, deadline::Events, grade::Grades, user::User};
 
 
 // use crate::user_traits::UserTrait;
@@ -23,8 +25,8 @@ impl ApiClient {
             base_url: "https://moodle.astanait.edu.kz/webservice/rest/server.php?".to_string(),
             token: format!("wstoken={}", token),
             format: "&moodlewsrestformat=json".to_string(),
-            user_id,
-            course_id
+            user_id: user_id.map(|id| format!("&userid={}", id)),
+            course_id: course_id.map(|id| format!("&courseid={}", id))
         }
     }
 
@@ -50,7 +52,7 @@ impl ApiClient {
             self.token,
             format!("&wsfunction={}", function),
             self.format,
-            format!("&userid={}", self.user_id.clone().unwrap_or_default())
+            self.user_id.clone().unwrap_or_default()
         );
 
         let response = self.client.get(&url).send().await?.json::<Vec<Course>>().await?;
@@ -65,13 +67,26 @@ impl ApiClient {
             self.token,
             format!("&wsfunction={}", function),
             self.format,
-            format!("&userid={}", self.user_id.clone().unwrap_or_default()),
-            format!("&courseid={}", self.course_id.clone().unwrap_or_default())
+            self.user_id.clone().unwrap_or_default(),
+            self.course_id.clone().unwrap_or_default()
         );
 
-        println!("{}", url);
 
         let response = self.client.get(&url).send().await?.json::<Grades>().await?;
+        Ok(response)
+    }
+
+    pub async fn get_deadlines(&self) -> Result<Events, reqwest::Error> {
+        let function = Functions::GetDeadlines.new();
+
+        let url = format!("{}{}{}{}",
+            self.base_url,
+            self.token,
+            format!("&wsfunction={}", function),
+            self.format
+        );
+
+        let response = self.client.get(&url).send().await?.json::<Events>().await?;
         Ok(response)
     }
 }

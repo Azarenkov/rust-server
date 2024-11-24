@@ -4,6 +4,7 @@ use futures_util::TryStreamExt;
 use mongodb::bson::{self, doc, Document};
 use mongodb::Collection;
 use crate::domain::course::Course;
+use crate::domain::deadline::Deadline;
 use crate::domain::full_info::UserCourseInfo;
 use crate::domain::grade::GradeItems;
 use crate::domain::user::User;
@@ -30,7 +31,7 @@ impl DbRepositoryAbstract for DbAdapter {
             None
         ).await {
             Ok(_) => Ok(()),
-        Err(e) =>  Err(e),
+            Err(e) =>  Err(e),
         }
     }
     
@@ -71,7 +72,7 @@ impl DbRepositoryAbstract for DbAdapter {
             None
         ).await {
             Ok(_) => Ok(()),
-        Err(e) =>  Err(e),
+            Err(e) =>  Err(e),
         }
     }
     
@@ -107,27 +108,22 @@ impl DbRepositoryAbstract for DbAdapter {
             None
         ).await {
             Ok(_) => Ok(()),
-        Err(e) =>  Err(e),
+            Err(e) =>  Err(e),
+        }
+    }
+    
+    async fn update_deadline_info(&self, token: &String, deadlines: Vec<Deadline>) -> Result<(), mongodb::error::Error> {
+        match self.collection.update_one(
+            bson::doc! {"token": token},
+            bson::doc! {
+                "$set": {"deadlines": bson::to_bson(&deadlines).unwrap()}
+            },
+            None
+        ).await {
+            Ok(_) => Ok(()),
+            Err(e) =>  Err(e),
         }
     }
 
     
 }
-
-
-// pub async fn update_user_info(db: mongodb::Collection<bson::Document>, token: &String, user: User) -> Result<(), mongodb::error::Error> {
-//     match db.update_one(
-//         bson::doc! {"token": token},
-//         bson::doc! {
-//             "$set": {"user_info": bson::to_bson(&user).unwrap()}
-//         },
-//         None
-//     ).await {
-//         Ok(_) => {
-//             Ok(())
-//         },
-//         Err(e) => {
-//             Err(e)
-//         },
-//     }
-// }

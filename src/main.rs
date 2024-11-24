@@ -10,11 +10,6 @@ use mongodb::bson::{self};
 use application::services::sync_service::SyncService;
 use application::repositories::sync_service_abstract::SyncServiceAbstract;
 
-//Delete
-// use adapters::db::db_adapter::DbAdapter;
-// use infrastructure::repositories::db_repository_abstract::DbRepositoryAbstract;
-
-
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
 
@@ -27,8 +22,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     service.sync_data_with_database().await;
     service.sync_courses_with_database().await;
     service.sync_grades_with_database().await;
-
- 
+    service.sync_deadlines_with_database().await;
 
     
 

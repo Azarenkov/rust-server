@@ -1,5 +1,3 @@
-
-
 use futures_util::TryStreamExt;
 use mongodb::bson::{self, doc, Document};
 use mongodb::Collection;

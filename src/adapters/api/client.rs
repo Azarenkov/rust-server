@@ -1,13 +1,6 @@
-// use std::fmt::format;
-
-use core::error;
-
 use reqwest::Client;
 use super::helpers::Functions;
 use crate::domain::{course::Course, deadline::Events, grade::Grades, user::User};
-
-
-// use crate::user_traits::UserTrait;
 
 pub struct ApiClient {
     client: Client,

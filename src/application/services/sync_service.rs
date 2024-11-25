@@ -1,8 +1,8 @@
 use mongodb::bson::{self};
 use crate::adapters::api::client::ApiClient;
-use crate::adapters::db;
-use crate::adapters::db::db_adapter::{self, DbAdapter};
+use crate::adapters::db::db_adapter::DbAdapter;
 use crate::application::repositories::sync_service_abstract::SyncServiceAbstract;
+use crate::application::utils::helpers::extract_link_and_date;
 use crate::infrastructure::repositories::db_repository_abstract::DbRepositoryAbstract;
 use crate::application::utils::errors::SyncError;
 use chrono::Utc;
@@ -115,11 +115,13 @@ impl SyncServiceAbstract for SyncService {
 
             match api_client.get_deadlines().await {
                 Ok(deadlines) => {
-                    deadlines.events.clone().into_iter().for_each(|deadline|{
+                    deadlines.events.clone().into_iter().for_each(|mut deadline|{
                         let current_time = Utc::now().with_timezone(&chrono::FixedOffset::east(6 * 3600));
                         let current_unix_time = current_time.timestamp();
 
-                        if (deadline.timeusermidnight + 1800) > current_unix_time.try_into().unwrap() {
+                        if (deadline.timeusermidnight + 10000000) > current_unix_time.try_into().unwrap() {
+                            let time_description= extract_link_and_date(&deadline.formattedtime);
+                            deadline.formattedtime = time_description.unwrap_or_else(|| "No time".to_string());                            
                             deadlines_data.push(deadline);
                         }
 

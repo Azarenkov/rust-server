@@ -1,4 +1,5 @@
 use reqwest::Client;
+use reqwest::Error as ReqwestErr;
 use super::helpers::Functions;
 use crate::domain::{course::Course, deadline::Events, grade::Grades, user::User};
 
@@ -23,7 +24,7 @@ impl ApiClient {
         }
     }
 
-    pub async fn get_user(&self) -> Result<User, reqwest::Error> {
+    pub async fn get_user(&self) -> Result<User, ReqwestErr> {
         let function = Functions::GetUserData.new();
 
         let url = format!("{}{}{}{}",
@@ -37,7 +38,7 @@ impl ApiClient {
         Ok(response)
     }
 
-    pub async fn get_courses(&self) -> Result<Vec<Course>, reqwest::Error> {
+    pub async fn get_courses(&self) -> Result<Vec<Course>, ReqwestErr> {
         let function = Functions::GetAllCourses.new();
 
         let url = format!("{}{}{}{}{}",
@@ -52,7 +53,7 @@ impl ApiClient {
         Ok(response)
     }
 
-    pub async fn get_grades(&self) -> Result<Grades, reqwest::Error> {
+    pub async fn get_grades(&self) -> Result<Grades, ReqwestErr> {
         let function = Functions::GetGrades.new();
 
         let url = format!("{}{}{}{}{}{}",
@@ -69,7 +70,7 @@ impl ApiClient {
         Ok(response)
     }
 
-    pub async fn get_deadlines(&self) -> Result<Events, reqwest::Error> {
+    pub async fn get_deadlines(&self) -> Result<Events, ReqwestErr> {
         let function = Functions::GetDeadlines.new();
 
         let url = format!("{}{}{}{}",

@@ -16,11 +16,8 @@ use actix_web::web;
 async fn main() -> Result<(), Box<dyn Error>> {
 
     let db = get_database().await;
-    let users  = db.collection("users");
 
-    // let token = "711abc349948337f8b97cbb01b76adf5";
-
-    let service = SyncService::new(users.clone());
+    let service = SyncService::new(db.clone());
     service.sync_data_with_database().await;
     service.sync_courses_with_database().await;
     service.sync_grades_with_database().await;
@@ -28,7 +25,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     HttpServer::new(move || {
         App::new()
-            .app_data(web::Data::new(users.clone()))
+            .app_data(web::Data::new(db.clone()))
             .service(get_user_info)
             .service(get_courses)
             .service(get_grades)

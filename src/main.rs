@@ -4,19 +4,21 @@ mod infrastructure;
 mod application;
 
 use std::error::Error;
+use actix_web::{App, HttpServer};
+use application::services::actix_service::{get_deadlines, get_grades};
 use infrastructure::db::get_database;
 use tokio::time::{sleep, Duration};
-use mongodb::bson::{self};
-use application::services::sync_service::SyncService;
+use application::services::{actix_service::get_user_info, actix_service::get_courses, sync_service::SyncService};
 use application::repositories::sync_service_abstract::SyncServiceAbstract;
+use actix_web::web;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
 
     let db = get_database().await;
-    let users: mongodb::Collection<bson::Document> = db.collection("users");
+    let users  = db.collection("users");
 
-    let token = "711abc349948337f8b97cbb01b76adf5";
+    // let token = "711abc349948337f8b97cbb01b76adf5";
 
     let service = SyncService::new(users.clone());
     service.sync_data_with_database().await;
@@ -24,16 +26,18 @@ async fn main() -> Result<(), Box<dyn Error>> {
     service.sync_grades_with_database().await;
     service.sync_deadlines_with_database().await;
 
-    
+    HttpServer::new(move || {
+        App::new()
+            .app_data(web::Data::new(users.clone()))
+            .service(get_user_info)
+            .service(get_courses)
+            .service(get_grades)
+            .service(get_deadlines)
+    })
+    .bind("127.0.0.1:1105")?
+    .run()
+    .await?;
 
-    // loop {
-    //     match api_client.get_user().await {
-    //         Ok(user) => println!("{:#?}", user),
-    //         Err(e) => println!("{:#?}", e),
-    //     }
-
-    //     sleep(Duration::from_secs(10)).await;
-    // }
     Ok(())
 }
 

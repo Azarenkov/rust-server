@@ -1,5 +1,5 @@
 use futures_util::TryStreamExt;
-use mongodb::bson::{self, doc, Document};
+use mongodb::bson::{self, doc, Array, Document};
 use mongodb::Collection;
 use crate::domain::course::Course;
 use crate::domain::deadline::Deadline;
@@ -7,6 +7,7 @@ use crate::domain::full_info::UserCourseInfo;
 use crate::domain::grade::GradeItems;
 use crate::domain::user::User;
 use crate::infrastructure::repositories::db_repository_abstract::DbRepositoryAbstract;
+use crate::adapters::utils::errors::DbErrors;
 
 
 pub struct DbAdapter {
@@ -122,6 +123,80 @@ impl DbRepositoryAbstract for DbAdapter {
             Err(e) =>  Err(e),
         }
     }
+    
 
+    async fn get_user_info(&self, token: &String) -> Result<Document, DbErrors> {
+        match self.collection.find_one(doc! { "token": &token }, None).await {
+            Ok(document) => {
+                match document {
+                    Some(doc) => {
+                        if let Some(user_info) = doc.get_document("user_info").ok() {
+                            Ok(user_info.clone())
+                        } else {
+                            Err(DbErrors::NotFound())
+                        }
+                    },
+                    None => Err(DbErrors::NotFound()),
+                }
+            },
+            Err(e) => Err(DbErrors::DbError(e))
+        }
+    }
+    
+    async fn get_courses(&self, token: &String) -> Result<Array, DbErrors> {
+        match self.collection.find_one(doc! { "token": &token }, None).await {
+            Ok(document) => {
+                match document {
+                    Some(doc) => {
+                        if let Some(courses) = doc.get_array("courses").ok() {
+                            Ok(courses.clone())
+                        } else {
+                            Err(DbErrors::NotFound())
+                        }
+                    },
+                    None => Err(DbErrors::NotFound()),
+                }
+            },
+            Err(e) => Err(DbErrors::DbError(e))
+        }
+    }
+    
+    async fn get_grades(&self, token: &String) -> Result<Array, DbErrors> {
+        match self.collection.find_one(doc! { "token": &token }, None).await {
+            Ok(document) => {
+                match document {
+                    Some(doc) => {
+                        if let Some(grades) = doc.get_array("grades").ok() {
+                            Ok(grades.clone())
+                        } else {
+                            Err(DbErrors::NotFound())
+                        }
+                    },
+                    None => Err(DbErrors::NotFound()),
+                }
+            },
+            Err(e) => Err(DbErrors::DbError(e))
+        }
+    }
+    
+    async fn get_deadlines(&self, token: &String) -> Result<Array, DbErrors> {
+        match self.collection.find_one(doc! { "token": &token }, None).await {
+            Ok(document) => {
+                match document {
+                    Some(doc) => {
+                        if let Some(deadlines) = doc.get_array("deadlines").ok() {
+                            Ok(deadlines.clone())
+                        } else {
+                            Err(DbErrors::NotFound())
+                        }
+                    },
+                    None => Err(DbErrors::NotFound()),
+                }
+            },
+            Err(e) => Err(DbErrors::DbError(e))
+        }
+    }
+
+    
     
 }

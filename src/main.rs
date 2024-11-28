@@ -31,7 +31,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             .service(get_grades)
             .service(get_deadlines)
     })
-    .bind("127.0.0.1:1105")?
+    .bind("0.0.0.0:1105")?
     .run()
     .await?;
 

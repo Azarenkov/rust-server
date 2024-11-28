@@ -1,7 +1,35 @@
-use actix_web::{get, web, HttpResponse};
+use actix_web::{get, post, web, HttpResponse};
 use mongodb::{bson::Document, Collection};
-use crate::{adapters::db::db_adapter::DbAdapter, infrastructure::repositories::db_repository_abstract::DbRepositoryAbstract};
+use crate::{adapters::db::db_adapter::DbAdapter, adapters::api::client::ApiClient, infrastructure::repositories::db_repository_abstract::DbRepositoryAbstract};
 use crate::adapters::utils::errors::DbErrors;
+
+#[post("/add_token/{token}")]
+async fn check_token(token: web::Path<String>, db: web::Data<Collection<Document>>) -> HttpResponse {
+    let token = token.into_inner();
+    let db = DbAdapter::new(db.get_ref().clone());
+
+    let api_client = ApiClient::new(&token, None, None);
+
+    match api_client.get_user().await {
+        Ok(_) => {
+            match db.find_token(&token).await {
+                Ok(_) => HttpResponse::Ok().body("Token is valid"),
+                Err(e) => {
+                    match e {
+                        DbErrors::NotFound() => {
+                            match db.add_token(&token).await {
+                                Ok(_) => HttpResponse::Ok().body("Token is valid"),
+                                Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
+                            }
+                        },
+                        DbErrors::DbError(e) => HttpResponse::InternalServerError().body(e.to_string()),
+                    }
+                },
+            }
+        },
+        Err(_) =>  HttpResponse::NotFound().body(format!("No user with token: {}", token)),
+    }
+}
 
 #[get("/get_user_info/{token}")]
 async fn get_user_info(token: web::Path<String>, db: web::Data<Collection<Document>>) -> HttpResponse {

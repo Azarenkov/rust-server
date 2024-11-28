@@ -24,6 +24,24 @@ impl ApiClient {
         }
     }
 
+    pub async fn validate_token(&self) -> Result<(), ReqwestErr> {
+        let function = Functions::GetUserData.new();
+
+        let url = format!("{}{}{}{}",
+            self.base_url,
+            self.token,
+            format!("&wsfunction={}", function),
+            self.format
+        );
+
+        let response = self.client.get(&url).send().await?.json::<User>().await;
+
+        match response {
+            Ok(_) => Ok(()),
+            Err(e) => Err(e),
+        }
+    }
+
     pub async fn get_user(&self) -> Result<User, ReqwestErr> {
         let function = Functions::GetUserData.new();
 

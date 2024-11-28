@@ -197,6 +197,26 @@ impl DbRepositoryAbstract for DbAdapter {
             Err(e) => Err(DbErrors::DbError(e))
         }
     }
+    
+    async fn add_token(&self, token: &String) -> Result<(), mongodbErr> {
+        match self.collection.insert_one(doc! { "token": &token }, None).await {
+            Ok(_) => Ok(()),
+            Err(e) => Err(e),
+        }
+    }
+    
+    async fn find_token(&self, token: &String) -> Result<(), DbErrors> {
+        match self.collection.find_one(doc! { "token": &token }, None).await {
+            Ok(doc) => {
+                if let Some(_token) = doc {
+                    Ok(())
+                } else {
+                    Err(DbErrors::NotFound())
+                }
+            },
+            Err(e) => Err(DbErrors::DbError(e)),
+        }
+    }
 
     
     

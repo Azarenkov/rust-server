@@ -10,7 +10,7 @@ async fn check_token(token: web::Path<String>, db: web::Data<Collection<Document
 
     let api_client = ApiClient::new(&token, None, None);
 
-    match api_client.get_user().await {
+    match api_client.validate_token().await {
         Ok(_) => {
             match db.find_token(&token).await {
                 Ok(_) => HttpResponse::Ok().body("Token is valid"),

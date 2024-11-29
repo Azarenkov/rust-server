@@ -139,5 +139,14 @@ impl SyncServiceAbstract for SyncService {
 
         Ok(())
     }
+    
+    async fn sync_all_data(&self) -> Result<(), SyncError> {
+        self.sync_data_with_database().await?;
+        self.sync_courses_with_database().await?;
+        self.sync_grades_with_database().await?;
+        self.sync_deadlines_with_database().await?;
+
+        Ok(())
+    }
 }
 

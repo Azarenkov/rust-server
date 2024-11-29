@@ -21,14 +21,24 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let service = SyncService::new(db.clone());
 
-
-
     tokio::spawn(async move {
         loop {
-            service.sync_data_with_database().await;
-            service.sync_courses_with_database().await;
-            service.sync_grades_with_database().await;
-            service.sync_deadlines_with_database().await;
+            if let Err(_e) = service.sync_data_with_database().await {
+                sleep(Duration::from_secs(10)).await;
+                continue;
+            }
+            if let Err(_e) = service.sync_courses_with_database().await {
+                sleep(Duration::from_secs(10)).await;
+                continue;
+            }
+            if let Err(_e) = service.sync_grades_with_database().await {
+                sleep(Duration::from_secs(10)).await;
+                continue;
+            }
+            if let Err(_e) = service.sync_deadlines_with_database().await {
+                sleep(Duration::from_secs(10)).await;
+                continue;
+            }
             
             sleep(Duration::from_secs(10)).await;
         }
@@ -46,7 +56,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
     .bind("0.0.0.0:8080")?
     .run()
     .await?;
-
 
     Ok(())
 }

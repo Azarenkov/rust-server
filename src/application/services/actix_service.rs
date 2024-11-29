@@ -1,11 +1,16 @@
 use actix_web::{get, post, web, HttpResponse};
 use mongodb::{bson::Document, Collection};
+use crate::application::repositories::sync_service_abstract::SyncServiceAbstract;
+use crate::application::services::sync_service::SyncService;
 use crate::{adapters::db::db_adapter::DbAdapter, adapters::api::client::ApiClient, infrastructure::repositories::db_repository_abstract::DbRepositoryAbstract};
 use crate::adapters::utils::errors::DbErrors;
 
 #[post("/add_token/{token}")]
 async fn check_token(token: web::Path<String>, db: web::Data<Collection<Document>>) -> HttpResponse {
     let token = token.into_inner();
+
+    let service = SyncService::new(db.get_ref().clone());
+
     let db = DbAdapter::new(db.get_ref().clone());
 
     let api_client = ApiClient::new(&token, None, None);
@@ -18,7 +23,12 @@ async fn check_token(token: web::Path<String>, db: web::Data<Collection<Document
                     match e {
                         DbErrors::NotFound() => {
                             match db.add_token(&token).await {
-                                Ok(_) => HttpResponse::Ok().body("Token is valid"),
+                                Ok(_) => {
+                                    tokio::spawn(async move {
+                                        service.sync_all_data().await;
+                                    });
+                                    HttpResponse::Ok().body("Token is valid")
+                                },
                                 Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
                             }
                         },

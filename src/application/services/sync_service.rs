@@ -70,6 +70,8 @@ impl SyncServiceAbstract for SyncService {
                 },
             }
         }
+        println!("Courses updated!");
+
         Ok(())
     }
     
@@ -100,6 +102,8 @@ impl SyncServiceAbstract for SyncService {
             db.update_grades_info(&vector.token, grades_data).await?;
         }
         // println!("{:#?}", grades_data);
+        println!("Grades updated!");
+
         Ok(())
     }
     
@@ -131,6 +135,8 @@ impl SyncServiceAbstract for SyncService {
             }
             db.update_deadline_info(&token, deadlines_data).await?;
         }
+        println!("Deadlines updated!");
+
         Ok(())
     }
 }

@@ -31,19 +31,15 @@ impl SyncServiceAbstract for SyncService {
                         Ok(user) => {
                             match db.get_user_info(&token).await {
                                 Ok(user_info) => {
-                                    let user_json = to_string(&user).unwrap_or_default();
-                                    let user_info_json = user_info.to_string();
+                                    let user_json = serde_json::to_string(&user).unwrap_or_default();
+                                    let user_info_json = serde_json::to_string(&user_info).unwrap_or_default();
 
                                     // println!("{:?}", user_json);
                                     // println!("{:?}", user_info_json);
 
-                                    let user_value: Value = from_str(&user_json).unwrap_or_default();
-                                    let user_info_value: Value = from_str(&user_info_json).unwrap_or_default();
+                 
 
-                                    println!("{:?}", user_value);
-                                    println!("{:?}", user_info_value);
-
-                                    if user_value != user_info_value {
+                                    if user_json != user_info_json {
 
                                         match db.update_user_info(&token, user).await {
                                             Ok(_) => {
@@ -101,8 +97,10 @@ impl SyncServiceAbstract for SyncService {
                 Ok(courses) => {
                     match db.get_courses(&vector.0).await {
                         Ok(db_courses) => {
-                            let courses_json = to_string(&courses).unwrap_or_default();
-                            let db_courses_json = format!("{:?}", db_courses);
+                            let courses_json = serde_json::to_string(&courses).unwrap_or_default();
+                            let db_courses_json = serde_json::to_string(&db_courses).unwrap_or_default();
+                            // println!("{:#?}", courses_json);
+                            // println!("{}", db_courses_json);
 
                             if courses_json != db_courses_json {
                                 match db.update_courses_info(&vector.0, courses).await {

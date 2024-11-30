@@ -31,26 +31,37 @@ impl SyncServiceAbstract for SyncService {
                         Ok(user) => {
                             match db.get_user_info(&token).await {
                                 Ok(user_info) => {
-                                    let user_json = serde_json::to_string(&user).unwrap_or_default();
-                                    let user_info_json = serde_json::to_string(&user_info).unwrap_or_default();
+                                    let user_json = serde_json::to_string(&user);
+                                    let user_info_json = serde_json::to_string(&user_info);
 
                                     // println!("{:?}", user_json);
-                                    // println!("{:?}", user_info_json);
+                                    // println!("{:?}", user_info_json);  
 
-                 
+                                    match user_json {
+                                        Ok(user_value) => {
+                                            match user_info_json {
+                                                Ok(user_info_value) => {
 
-                                    if user_json != user_info_json {
+                                                    if user_value != user_info_value {
 
-                                        match db.update_user_info(&token, user).await {
-                                            Ok(_) => {
-                                                println!("User info updated!");
-                                            },
-                                            Err(e) => {
-                                                println!("{:#?}", e);
-                                                return Err(SyncError::DatabaseError(e));
-                                            },
-                                        }
-                                    }
+                                                        match db.update_user_info(&token, user).await {
+                                                            Ok(_) => {
+                                                                println!("User info updated!");
+                                                            },
+                                                            Err(e) => {
+                                                                println!("{:#?}", e);
+                                                                return Err(SyncError::DatabaseError(e));
+                                                            },
+                                                        }
+                                                    }
+                                                },
+                                                Err(e) => return Err(SyncError::SerdeError(e)),
+                                            }
+                                        },
+                                        Err(e) => return Err(SyncError::SerdeError(e)),
+                                    }           
+                                   
+ 
                                 },
                                 Err(e) => {
                                     match e {
@@ -97,21 +108,31 @@ impl SyncServiceAbstract for SyncService {
                 Ok(courses) => {
                     match db.get_courses(&vector.0).await {
                         Ok(db_courses) => {
-                            let courses_json = serde_json::to_string(&courses).unwrap_or_default();
-                            let db_courses_json = serde_json::to_string(&db_courses).unwrap_or_default();
+                            let courses_json = serde_json::to_string(&courses);
+                            let db_courses_json = serde_json::to_string(&db_courses);
                             // println!("{:#?}", courses_json);
                             // println!("{}", db_courses_json);
 
-                            if courses_json != db_courses_json {
-                                match db.update_courses_info(&vector.0, courses).await {
-                                    Ok(_) => {
-                                        println!("Courses info updated!");
-                                    },
-                                    Err(e) => {
-                                        println!("{:#?}", e);
-                                        return Err(SyncError::DatabaseError(e));
-                                    },
-                                }
+                            match courses_json {
+                                Ok(courses_value) => {
+                                    match db_courses_json {
+                                        Ok(db_courses_value) => {
+                                            if courses_value != db_courses_value {
+                                                match db.update_courses_info(&vector.0, courses).await {
+                                                    Ok(_) => {
+                                                        println!("Courses info updated!");
+                                                    },
+                                                    Err(e) => {
+                                                        println!("{:#?}", e);
+                                                        return Err(SyncError::DatabaseError(e));
+                                                    },
+                                                }
+                                            }
+                                        },
+                                        Err(e) => return Err(SyncError::SerdeError(e)),
+                                    }
+                                },
+                                Err(e) => return Err(SyncError::SerdeError(e)),
                             }
                         },
                         Err(e) => {

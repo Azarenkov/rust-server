@@ -1,10 +1,12 @@
 use mongodb::error::Error as MongoError;
 use reqwest::Error as ReqwestError;
+use serde_json::error::Error as JsonError;
 
 #[derive(Debug)]
 pub enum SyncError {
     ApiError(ReqwestError),
     DatabaseError(MongoError),
+    SerdeError(JsonError)
 }
 
 impl From<ReqwestError> for SyncError {

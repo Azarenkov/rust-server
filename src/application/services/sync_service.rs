@@ -44,6 +44,16 @@ impl SyncServiceAbstract for SyncService {
                                                 return Err(SyncError::DatabaseError(e));
                                             },
                                         }
+                                    } else if user_info_json.is_empty() {
+                                        match db.update_user_info(&token, user).await {
+                                            Ok(_) => {
+                                                println!("User info updated!");
+                                            },
+                                            Err(e) => {
+                                                println!("{:#?}", e);
+                                                return Err(SyncError::DatabaseError(e));
+                                            },
+                                        }
                                     }
                                 },
                                 Err(e) => {

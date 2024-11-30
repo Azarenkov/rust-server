@@ -1,4 +1,5 @@
 use mongodb::bson::{self};
+use serde_json::to_string;
 use crate::adapters::api::client::ApiClient;
 use crate::adapters::db::db_adapter::DbAdapter;
 use crate::application::repositories::sync_service_abstract::SyncServiceAbstract;
@@ -28,15 +29,31 @@ impl SyncServiceAbstract for SyncService {
     
                     match response {
                         Ok(user) => {
-                            match db.update_user_info(&token, user).await {
-                                Ok(_) => {
-                                    println!("User info updated!");
+                            match db.get_user_info(&token).await {
+                                Ok(user_info) => {
+                                    let user_json = to_string(&user).unwrap_or_default();
+                                    let user_info_json = user_info.to_string();
+
+                                    if user_json == user_info_json {
+                                        match db.update_user_info(&token, user).await {
+                                            Ok(_) => {
+                                                println!("User info updated!");
+                                            },
+                                            Err(e) => {
+                                                println!("{:#?}", e);
+                                                return Err(SyncError::DatabaseError(e));
+                                            },
+                                        }
+                                    }
                                 },
                                 Err(e) => {
-                                    println!("{:#?}", e);
-                                    return Err(SyncError::DatabaseError(e));
+                                    match e {
+                                        crate::adapters::utils::errors::DbErrors::NotFound() => return Err(SyncError::NotFound()),
+                                        crate::adapters::utils::errors::DbErrors::DbError(error) => return Err(SyncError::DatabaseError(error)),
+                                    }
                                 },
                             }
+  
                         },
                         Err(e) => {
                             println!("{:#?}", e);

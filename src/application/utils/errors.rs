@@ -5,6 +5,7 @@ use reqwest::Error as ReqwestError;
 pub enum SyncError {
     ApiError(ReqwestError),
     DatabaseError(MongoError),
+    NotFound()
 }
 
 impl From<ReqwestError> for SyncError {

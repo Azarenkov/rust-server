@@ -3,10 +3,11 @@ use serde_json::{from_str, to_string, Value};
 use crate::adapters::api::client::ApiClient;
 use crate::adapters::db::db_adapter::DbAdapter;
 use crate::application::repositories::sync_service_abstract::SyncServiceAbstract;
-use crate::application::utils::helpers::extract_link_and_date;
+use crate::application::utils::helpers::{extract_link_and_date, Compare};
 use crate::infrastructure::repositories::db_repository_abstract::DbRepositoryAbstract;
 use crate::application::utils::errors::SyncError;
 use chrono::Utc;
+use crate::adapters::utils::errors::DbErrors;
 
 pub struct SyncService {
     pub db: mongodb::Collection<bson::Document>,
@@ -21,80 +22,30 @@ impl SyncService {
 impl SyncServiceAbstract for SyncService {
     async fn sync_data_with_database(&self) -> Result<(), SyncError> {
         let db = DbAdapter::new(self.db.clone());
-        match db.get_users_tokens().await {
-            Ok(tokens) => {
-                for token in tokens {
-                    let api_client = ApiClient::new(&token, None, None);
-                    let response = api_client.get_user().await;
-    
-                    match response {
-                        Ok(user) => {
-                            match db.get_user_info(&token).await {
-                                Ok(user_info) => {
-                                    let user_json = serde_json::to_string(&user);
-                                    let user_info_json = serde_json::to_string(&user_info);
+        let tokens = db.get_users_tokens().await?;
+        for token in tokens {
+            let api_client = ApiClient::new(&token, None, None);
+            let user = api_client.get_user().await?;
 
-                                    // println!("{:?}", user_json);
-                                    // println!("{:?}", user_info_json);  
+            match db.get_user_info(&token).await {
+                Ok(user_info) => {
+                    let user_db_value = serde_json::to_string(&user_info).map_err(|e| SyncError::SerdeError(e))?;
+                    let comparing = user.compare(user_db_value).map_err(|e| SyncError::SerdeError(e))?;
 
-                                    match user_json {
-                                        Ok(user_value) => {
-                                            match user_info_json {
-                                                Ok(user_info_value) => {
-
-                                                    if user_value != user_info_value {
-
-                                                        match db.update_user_info(&token, user).await {
-                                                            Ok(_) => {
-                                                                println!("User info updated!");
-                                                            },
-                                                            Err(e) => {
-                                                                println!("{:#?}", e);
-                                                                return Err(SyncError::DatabaseError(e));
-                                                            },
-                                                        }
-                                                    }
-                                                },
-                                                Err(e) => return Err(SyncError::SerdeError(e)),
-                                            }
-                                        },
-                                        Err(e) => return Err(SyncError::SerdeError(e)),
-                                    }           
-                                   
- 
-                                },
-                                Err(e) => {
-                                    match e {
-                                        crate::adapters::utils::errors::DbErrors::NotFound() => {
-                                            match db.update_user_info(&token, user).await {
-                                                Ok(_) => {
-                                                    println!("User info updated!");
-                                                },
-                                                Err(e) => {
-                                                    println!("{:#?}", e);
-                                                    return Err(SyncError::DatabaseError(e));
-                                                },
-                                            }
-                                        },
-                                        crate::adapters::utils::errors::DbErrors::DbError(error) => return Err(SyncError::DatabaseError(error)),
-                                    }
-                                },
-                            }
-  
-                        },
-                        Err(e) => {
-                            println!("{:#?}", e);
-                            return Err(SyncError::ApiError(e));
-                        },
+                    match comparing {
+                        true => (),
+                        false => db.update_user_info(&token, user).await?,                        
                     }
-                }
-                Ok(())
-            },
-            Err(e) => {
-                println!("{:#?}", e);
-                Err(SyncError::DatabaseError(e))
-            }  
+                },
+                Err(e) => {
+                    match e {
+                        DbErrors::NotFound() => db.update_user_info(&token, user).await?,
+                        DbErrors::DbError(error) => return Err(SyncError::DatabaseError(error)),
+                    }
+                },
+            }
         }
+        Ok(())
     }
 
     async fn sync_courses_with_database(&self) -> Result<(), SyncError> {

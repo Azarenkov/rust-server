@@ -25,7 +25,9 @@ async fn check_token(token: web::Path<String>, db: web::Data<Collection<Document
                             match db.add_token(&token).await {
                                 Ok(_) => {
                                     tokio::spawn(async move {
-                                        service.sync_all_data().await;
+                                        if let Err(e) = service.sync_all_data().await {
+                                            eprintln!("Error syncing data: {:?}", e);
+                                        }
                                     });
                                     HttpResponse::Ok().body("Token is valid")
                                 },

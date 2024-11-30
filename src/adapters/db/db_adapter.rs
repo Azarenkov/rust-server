@@ -1,5 +1,5 @@
 use futures_util::TryStreamExt;
-use mongodb::bson::{self, doc, Array, Document};
+use mongodb::bson::{self, doc, document, Array, Document};
 use mongodb::Collection;
 use mongodb::error::Error as mongodbErr;
 use crate::domain::course::Course;
@@ -23,16 +23,14 @@ impl DbAdapter {
 
 impl DbRepositoryAbstract for DbAdapter {
     async fn update_user_info(&self, token: &String, user: User) -> Result<(), mongodbErr> {
-        match self.collection.update_one(
+        self.collection.update_one(
             bson::doc! {"token": token},
             bson::doc! {
                 "$set": {"user_info": bson::to_bson(&user).unwrap()}
             },
             None
-        ).await {
-            Ok(_) => Ok(()),
-            Err(e) =>  Err(e),
-        }
+        ).await?;
+        Ok(())
     }
     
     async fn get_users_tokens(&self) -> Result<Vec<String>, mongodbErr> {
@@ -64,16 +62,14 @@ impl DbRepositoryAbstract for DbAdapter {
     }
     
     async fn update_courses_info(&self, token: &String, courses: Vec<Course>) -> Result<(), mongodbErr> {
-        match self.collection.update_one(
+        self.collection.update_one(
             bson::doc! {"token": token},
             bson::doc! {
                 "$set": {"courses": bson::to_bson(&courses).unwrap()}
             },
             None
-        ).await {
-            Ok(_) => Ok(()),
-            Err(e) =>  Err(e),
-        }
+        ).await?;
+        Ok(())
     }
     
     async fn get_tokens_and_userdid_and_courses(&self) -> Result<Vec<UserCourseInfo>, mongodbErr> {
@@ -100,124 +96,108 @@ impl DbRepositoryAbstract for DbAdapter {
     }
     
     async fn update_grades_info(&self, token: &String, grades: Vec<GradeItems>) -> Result<(), mongodbErr> {
-        match self.collection.update_one(
+        self.collection.update_one(
             bson::doc! {"token": token},
             bson::doc! {
                 "$set": {"grades": bson::to_bson(&grades).unwrap()}
             },
             None
-        ).await {
-            Ok(_) => Ok(()),
-            Err(e) =>  Err(e),
-        }
+        ).await?;
+        Ok(())
     }
     
     async fn update_deadline_info(&self, token: &String, deadlines: Vec<Deadline>) -> Result<(), mongodbErr> {
-        match self.collection.update_one(
+        self.collection.update_one(
             bson::doc! {"token": token},
             bson::doc! {
                 "$set": {"deadlines": bson::to_bson(&deadlines).unwrap()}
             },
             None
-        ).await {
-            Ok(_) => Ok(()),
-            Err(e) =>  Err(e),
-        }
+        ).await?;
+        Ok(())
     }
     
 
     async fn get_user_info(&self, token: &String) -> Result<Document, DbErrors> {
-        match self.collection.find_one(doc! { "token": &token }, None).await {
-            Ok(document) => {
-                match document {
-                    Some(doc) => {
-                        if let Some(user_info) = doc.get_document("user_info").ok() {
-                            Ok(user_info.clone())
-                        } else {
-                            Err(DbErrors::NotFound())
-                        }
-                    },
-                    None => Err(DbErrors::NotFound()),
-                }
-            },
-            Err(e) => Err(DbErrors::DbError(e))
-        }
-    }
-    
-    async fn get_courses(&self, token: &String) -> Result<Array, DbErrors> {
-        match self.collection.find_one(doc! { "token": &token }, None).await {
-            Ok(document) => {
-                match document {
-                    Some(doc) => {
-                        if let Some(courses) = doc.get_array("courses").ok() {
-                            Ok(courses.clone())
-                        } else {
-                            Err(DbErrors::NotFound())
-                        }
-                    },
-                    None => Err(DbErrors::NotFound()),
-                }
-            },
-            Err(e) => Err(DbErrors::DbError(e))
-        }
-    }
-    
-    async fn get_grades(&self, token: &String) -> Result<Array, DbErrors> {
-        match self.collection.find_one(doc! { "token": &token }, None).await {
-            Ok(document) => {
-                match document {
-                    Some(doc) => {
-                        if let Some(grades) = doc.get_array("grades").ok() {
-                            Ok(grades.clone())
-                        } else {
-                            Err(DbErrors::NotFound())
-                        }
-                    },
-                    None => Err(DbErrors::NotFound()),
-                }
-            },
-            Err(e) => Err(DbErrors::DbError(e))
-        }
-    }
-    
-    async fn get_deadlines(&self, token: &String) -> Result<Array, DbErrors> {
-        match self.collection.find_one(doc! { "token": &token }, None).await {
-            Ok(document) => {
-                match document {
-                    Some(doc) => {
-                        if let Some(deadlines) = doc.get_array("deadlines").ok() {
-                            Ok(deadlines.clone())
-                        } else {
-                            Err(DbErrors::NotFound())
-                        }
-                    },
-                    None => Err(DbErrors::NotFound()),
-                }
-            },
-            Err(e) => Err(DbErrors::DbError(e))
-        }
-    }
-    
-    async fn add_token(&self, token: &String) -> Result<(), mongodbErr> {
-        match self.collection.insert_one(doc! { "token": &token }, None).await {
-            Ok(_) => Ok(()),
-            Err(e) => Err(e),
-        }
-    }
-    
-    async fn find_token(&self, token: &String) -> Result<(), DbErrors> {
-        match self.collection.find_one(doc! { "token": &token }, None).await {
-            Ok(doc) => {
-                if let Some(_token) = doc {
-                    Ok(())
+        let document = self.collection.find_one(doc! { "token": &token }, None).await.map_err(|e| {
+            DbErrors::DbError(e)
+        })?;
+
+        match document {
+            Some(doc) => {
+                if let Some(user_info) = doc.get_document("user_info").ok() {
+                    Ok(user_info.clone())
                 } else {
                     Err(DbErrors::NotFound())
                 }
             },
-            Err(e) => Err(DbErrors::DbError(e)),
+            None => Err(DbErrors::NotFound()),
         }
     }
+    
+    async fn get_courses(&self, token: &String) -> Result<Array, DbErrors> {
+        let document = self.collection.find_one(doc! { "token": &token }, None).await.map_err(|e| {
+            DbErrors::DbError(e)
+        })?;
 
+        match document {
+            Some(doc) => {
+                if let Some(courses) = doc.get_array("courses").ok() {
+                    Ok(courses.clone())
+                } else {
+                    Err(DbErrors::NotFound())
+                }
+            },
+            None => Err(DbErrors::NotFound()),
+        }
+    }
     
+    async fn get_grades(&self, token: &String) -> Result<Array, DbErrors> {
+        let document = self.collection.find_one(doc! { "token": &token }, None).await.map_err(|e| {
+            DbErrors::DbError(e)
+        })?;
+
+        match document {
+            Some(doc) => {
+                if let Some(grades) = doc.get_array("grades").ok() {
+                    Ok(grades.clone())
+                } else {
+                    Err(DbErrors::NotFound())
+                }
+            },
+            None => Err(DbErrors::NotFound()),
+        }
+    }
     
+    async fn get_deadlines(&self, token: &String) -> Result<Array, DbErrors> {
+        let document = self.collection.find_one(doc! { "token": &token }, None).await.map_err(|e| {
+            DbErrors::DbError(e)
+        })?;
+
+        match document {
+            Some(doc) => {
+                if let Some(deadlines) = doc.get_array("deadlines").ok() {
+                    Ok(deadlines.clone())
+                } else {
+                    Err(DbErrors::NotFound())
+                }
+            },
+            None => Err(DbErrors::NotFound()),
+        }
+    }
+    
+    async fn add_token(&self, token: &String) -> Result<(), mongodbErr> {
+        self.collection.insert_one(doc! { "token": &token }, None).await?;
+        Ok(())
+    }
+    
+    async fn find_token(&self, token: &String) -> Result<(), DbErrors> {
+        let doc = self.collection.find_one(doc! { "token": &token }, None).await.map_err(|e| DbErrors::DbError(e))?;
+
+        if let Some(_token) = doc {
+            Ok(())
+        } else {
+            Err(DbErrors::NotFound())
+        }
+    }
 }

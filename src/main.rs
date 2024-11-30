@@ -33,16 +33,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 println!("{:?}", e);
                 continue;
             }
-            // if let Err(e) = service.sync_grades_with_database().await {
-            //     sleep(Duration::from_secs(10)).await;
-            //     // println!("{:?}", e);
-            //     continue;
-            // }
-            // if let Err(e) = service.sync_deadlines_with_database().await {
-            //     sleep(Duration::from_secs(10)).await;
-            //     // println!("{:?}", e);
-            //     continue;
-            // }
+            if let Err(e) = service.sync_grades_with_database().await {
+                sleep(Duration::from_secs(10)).await;
+                // println!("{:?}", e);
+                continue;
+            }
+            if let Err(e) = service.sync_deadlines_with_database().await {
+                sleep(Duration::from_secs(10)).await;
+                // println!("{:?}", e);
+                continue;
+            }
             
             sleep(Duration::from_secs(10)).await;
         }

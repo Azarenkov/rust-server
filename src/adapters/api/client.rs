@@ -34,12 +34,9 @@ impl ApiClient {
             self.format
         );
 
-        let response = self.client.get(&url).send().await?.json::<User>().await;
-
-        match response {
-            Ok(_) => Ok(()),
-            Err(e) => Err(e),
-        }
+        self.client.get(&url).send().await?.json::<User>().await?;
+        Ok(())
+     
     }
 
     pub async fn get_user(&self) -> Result<User, ReqwestErr> {

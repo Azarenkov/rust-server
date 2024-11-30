@@ -1,5 +1,5 @@
 use mongodb::bson::{self};
-use serde_json::to_string;
+use serde_json::{from_str, to_string, Value};
 use crate::adapters::api::client::ApiClient;
 use crate::adapters::db::db_adapter::DbAdapter;
 use crate::application::repositories::sync_service_abstract::SyncServiceAbstract;
@@ -34,17 +34,17 @@ impl SyncServiceAbstract for SyncService {
                                     let user_json = to_string(&user).unwrap_or_default();
                                     let user_info_json = user_info.to_string();
 
-                                    if user_json == user_info_json {
-                                        match db.update_user_info(&token, user).await {
-                                            Ok(_) => {
-                                                println!("User info updated!");
-                                            },
-                                            Err(e) => {
-                                                println!("{:#?}", e);
-                                                return Err(SyncError::DatabaseError(e));
-                                            },
-                                        }
-                                    } else if user_info_json.is_empty() {
+                                    // println!("{:?}", user_json);
+                                    // println!("{:?}", user_info_json);
+
+                                    let user_value: Value = from_str(&user_json).unwrap_or_default();
+                                    let user_info_value: Value = from_str(&user_info_json).unwrap_or_default();
+
+                                    println!("{:?}", user_value);
+                                    println!("{:?}", user_info_value);
+
+                                    if user_value != user_info_value {
+
                                         match db.update_user_info(&token, user).await {
                                             Ok(_) => {
                                                 println!("User info updated!");
@@ -58,7 +58,17 @@ impl SyncServiceAbstract for SyncService {
                                 },
                                 Err(e) => {
                                     match e {
-                                        crate::adapters::utils::errors::DbErrors::NotFound() => return Err(SyncError::NotFound()),
+                                        crate::adapters::utils::errors::DbErrors::NotFound() => {
+                                            match db.update_user_info(&token, user).await {
+                                                Ok(_) => {
+                                                    println!("User info updated!");
+                                                },
+                                                Err(e) => {
+                                                    println!("{:#?}", e);
+                                                    return Err(SyncError::DatabaseError(e));
+                                                },
+                                            }
+                                        },
                                         crate::adapters::utils::errors::DbErrors::DbError(error) => return Err(SyncError::DatabaseError(error)),
                                     }
                                 },
@@ -89,7 +99,40 @@ impl SyncServiceAbstract for SyncService {
             let api_client = ApiClient::new(&vector.0, Some(vector.1), None);
             match api_client.get_courses().await {
                 Ok(courses) => {
-                    db.update_courses_info(&vector.0, courses).await?;
+                    match db.get_courses(&vector.0).await {
+                        Ok(db_courses) => {
+                            let courses_json = to_string(&courses).unwrap_or_default();
+                            let db_courses_json = format!("{:?}", db_courses);
+
+                            if courses_json != db_courses_json {
+                                match db.update_courses_info(&vector.0, courses).await {
+                                    Ok(_) => {
+                                        println!("Courses info updated!");
+                                    },
+                                    Err(e) => {
+                                        println!("{:#?}", e);
+                                        return Err(SyncError::DatabaseError(e));
+                                    },
+                                }
+                            }
+                        },
+                        Err(e) => {
+                            match e {
+                                crate::adapters::utils::errors::DbErrors::NotFound() => {
+                                    match db.update_courses_info(&vector.0, courses).await {
+                                        Ok(_) => {
+                                            println!("Courses info updated!");
+                                        },
+                                        Err(e) => {
+                                            println!("{:#?}", e);
+                                            return Err(SyncError::DatabaseError(e));
+                                        },
+                                    }
+                                },
+                                crate::adapters::utils::errors::DbErrors::DbError(error) => return Err(SyncError::DatabaseError(error)),
+                            }
+                        },
+                    }
                 },
                 Err(e) => {
                     println!("{:#?}", e);
@@ -97,7 +140,6 @@ impl SyncServiceAbstract for SyncService {
                 },
             }
         }
-        println!("Courses updated!");
 
         Ok(())
     }

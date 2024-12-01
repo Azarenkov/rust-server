@@ -30,6 +30,8 @@ impl DbRepositoryAbstract for DbAdapter {
             },
             None
         ).await?;
+        println!("User_info updated!");
+
         Ok(())
     }
     
@@ -69,6 +71,8 @@ impl DbRepositoryAbstract for DbAdapter {
             },
             None
         ).await?;
+        println!("Courses updated!");
+
         Ok(())
     }
     
@@ -103,6 +107,8 @@ impl DbRepositoryAbstract for DbAdapter {
             },
             None
         ).await?;
+        println!("Grades updated!");
+
         Ok(())
     }
     

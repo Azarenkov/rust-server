@@ -1,5 +1,5 @@
 use regex::Regex;
-use crate::domain::user::User;
+use crate::domain::{course::Course, user::User};
 use serde_json::error::Error as JsonError;
 
 
@@ -15,18 +15,10 @@ pub fn extract_link_and_date(html: &str) -> Option<String> {
     }
 }
 
-pub trait Compare {
-    fn compare(&self, db_data: String) -> Result<bool, JsonError>;
-}
-
-impl Compare for User {
-    fn compare(&self, db_data: String) -> Result<bool, JsonError> {
-        let user_value = serde_json::to_string(&self).map_err(|e| e)?;
-
-        if user_value != db_data {
-            Ok(false)
-        } else {
-            Ok(true)
-        }
+pub fn compare(data: String, db_data: String) -> bool {
+    if data != db_data {
+        false
+    } else {
+        true
     }
 }

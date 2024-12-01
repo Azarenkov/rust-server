@@ -23,24 +23,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     tokio::spawn(async move {
         loop {
-            if let Err(e) = service.sync_data_with_database().await {
+            
+            if let Err(e) = service.sync_all_data().await {
                 sleep(Duration::from_secs(10)).await;
                 println!("{:?}", e);
-                continue;
-            }
-            if let Err(e) = service.sync_courses_with_database().await {
-                sleep(Duration::from_secs(10)).await;
-                println!("{:?}", e);
-                continue;
-            }
-            if let Err(e) = service.sync_grades_with_database().await {
-                sleep(Duration::from_secs(10)).await;
-                // println!("{:?}", e);
-                continue;
-            }
-            if let Err(e) = service.sync_deadlines_with_database().await {
-                sleep(Duration::from_secs(10)).await;
-                // println!("{:?}", e);
                 continue;
             }
             

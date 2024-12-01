@@ -120,6 +120,8 @@ impl DbRepositoryAbstract for DbAdapter {
             },
             None
         ).await?;
+        println!("Deadlines updated!");
+
         Ok(())
     }
     

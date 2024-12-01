@@ -73,8 +73,8 @@ impl SyncServiceAbstract for SyncService {
                 },
                 Err(e) => {
                     match e {
-                        crate::adapters::utils::errors::DbErrors::NotFound() => db.update_courses_info(&vector.0, courses).await?,
-                        crate::adapters::utils::errors::DbErrors::DbError(_error) => continue,
+                        DbErrors::NotFound() => db.update_courses_info(&vector.0, courses).await?,
+                        DbErrors::DbError(_error) => continue,
                     }
                 },
             }
@@ -135,30 +135,44 @@ impl SyncServiceAbstract for SyncService {
             let api_client = ApiClient::new(&token, None, None);
             let mut deadlines_data = Vec::new();
 
-            match api_client.get_deadlines().await {
-                Ok(deadlines) => {
-                    deadlines.events.clone().into_iter().for_each(|mut deadline|{
-                        let current_time = Utc::now().with_timezone(&chrono::FixedOffset::east(6 * 3600));
-                        let current_unix_time = current_time.timestamp();
+            let deadlines = api_client.get_deadlines().await?;
 
-                        if (deadline.timeusermidnight + 3600) > current_unix_time.try_into().unwrap() {
-                            let time_description= extract_link_and_date(&deadline.formattedtime);
-                            deadline.formattedtime = time_description.unwrap_or_else(|| "No time".to_string());                            
-                            deadlines_data.push(deadline);
-                        }
+            deadlines.events.clone().into_iter().for_each(|mut deadline|{
+                let current_time = Utc::now().with_timezone(&chrono::FixedOffset::east(6 * 3600));
+                let current_unix_time = current_time.timestamp();
 
-                    });
+                if (deadline.timeusermidnight + 3600) > current_unix_time.try_into().unwrap() {
+                    let time_description= extract_link_and_date(&deadline.formattedtime);
+                    deadline.formattedtime = time_description.unwrap_or_else(|| "No time".to_string());                            
+                    deadlines_data.push(deadline);
+                }
+            });
+
+            match db.get_deadlines(&token).await {
+                Ok(db_deadlines) => {
+                    let deadlines_value = serde_json::to_string(&deadlines_data).map_err(|e| SyncError::SerdeError(e))?;
+                    let db_deadlines_value = serde_json::to_string(&db_deadlines).map_err(|e| SyncError::SerdeError(e))?;
+
+                    let comparing = compare(deadlines_value, db_deadlines_value);
+
+                    match comparing {
+                        true => (),
+                        false => db.update_deadline_info(&token, deadlines_data).await?,
+                    }
                 },
-                Err(e) => return Err(SyncError::ApiError(e)),
+                Err(e) => {
+                    match e {
+                        DbErrors::NotFound() => db.update_deadline_info(&token, deadlines_data).await?,
+                        DbErrors::DbError(_error) => continue,
+                    }
+                },
             }
-            db.update_deadline_info(&token, deadlines_data).await?;
         }
-        println!("Deadlines updated!");
-
         Ok(())
     }
     
     async fn sync_all_data(&self) -> Result<(), SyncError> {
+        
         self.sync_data_with_database().await?;
         self.sync_courses_with_database().await?;
         self.sync_grades_with_database().await?;

@@ -208,4 +208,17 @@ impl DbRepositoryAbstract for DbAdapter {
             Err(DbErrors::NotFound())
         }
     }
+    
+    async fn add_device_token(&self, token: &String, device_token: &String) -> Result<(), mongodbErr> {
+        self.collection.update_one(
+            bson::doc! {"token": token},
+            bson::doc! {
+                "$set": {"device_token": &device_token}
+            },
+            None
+        ).await?;
+        println!("Device token updated!");
+
+        Ok(())
+    }
 }

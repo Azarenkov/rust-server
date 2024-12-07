@@ -24,4 +24,5 @@ pub trait DbRepositoryAbstract {
 
     async fn add_token(&self, token: &String) -> Result<(), mongodbErr>;
     async fn find_token(&self, token: &String) -> Result<(), DbErrors>;
+    async fn add_device_token(&self, token: &String, device_token: &String) -> Result<(), mongodbErr>;
 }

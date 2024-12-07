@@ -7,30 +7,58 @@ use crate::adapters::utils::errors::DbErrors;
 use crate::domain::auth_notification_tokens::Tokens;
 
 #[post("/add_token")]
-async fn check_token(form: web::Form<Tokens>, db: web::Data<Collection<Document>>) -> HttpResponse {
+async fn check_token(form: web::Json<Tokens>, db: web::Data<Collection<Document>>) -> HttpResponse {
     // let token = token.into_inner();
 
     let token = &form.token;
 
     let service = SyncService::new(db.get_ref().clone());
+
     let db = DbAdapter::new(db.get_ref().clone());
     let api_client = ApiClient::new(&token, None, None);
 
     match api_client.validate_token().await {
         Ok(_) => {
             match db.find_token(&token).await {
-                Ok(_) => HttpResponse::Ok().body("Token is valid"),
+                Ok(_) => {
+                    if let Some(device_token) = &form.device_token {
+                        match db.add_device_token(token, device_token).await {
+                            Ok(_) => {
+                                HttpResponse::Ok().body("Token is valid")
+                            },
+                            Err(e) => HttpResponse::InternalServerError().body(e.to_string())
+                        }                                  
+                    } else {
+                        HttpResponse::Ok().body("Token is valid")
+                    }
+                },
+                
                 Err(e) => {
                     match e {
                         DbErrors::NotFound() => {
                             match db.add_token(&token).await {
                                 Ok(_) => {
+                                    if let Some(device_token) = &form.device_token {
+                                        match db.add_device_token(token, device_token).await {
+                                            Ok(_) => {
+                                                tokio::spawn(async move {
+                                                    if let Err(e) = service.sync_all_data().await {
+                                                        eprintln!("Error syncing data: {:?}", e);
+                                                    }
+                                                });
+                                                HttpResponse::Ok().body("Token is valid")
+                                            },
+                                            Err(e) => HttpResponse::InternalServerError().body(e.to_string())
+                                        }                                  
+                                    } else {
+
                                     tokio::spawn(async move {
                                         if let Err(e) = service.sync_all_data().await {
                                             eprintln!("Error syncing data: {:?}", e);
                                         }
                                     });
                                     HttpResponse::Ok().body("Token is valid")
+                                }
                                 },
                                 Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
                             }

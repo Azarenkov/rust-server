@@ -19,31 +19,31 @@ use fcm::{self, message};
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
 
-    // let client = fcm::FcmClient::builder()
+    let client = fcm::FcmClient::builder()
 
-    // .service_account_key_json_path("service_account_key.json")
-    // .build()
-    // .await
-    // .unwrap();
+    .service_account_key_json_path("service_account_key.json")
+    .build()
+    .await
+    .unwrap();
 
-    // let device_token = "enCWYWBmEE1ckS-g2aYNEr:APA91bFbklR52axzKnUZwgs7TdSEPBQFvLxyvbOJ9vTov3SidyE6i69yj2WQhhW899UngHMz18X-7g4rx5pMWsf36ycOuJyQZK1yqiCQRYXwxnUe9sJIWAc".to_string();
-    // let message = Message {
-    // data: Some(json!({
-    //    "message": "Howdy!",
-    // })),
-    // notification: Some(Notification {
-    //     title: Some("Hello".to_string()),
-    //     body: Some(format!("it's {}", chrono::Utc::now())),
-    //     image: None,
-    // }),
-    // target: Target::Token(device_token),
-    // android: None,
-    // webpush: None,
-    // apns: None,
-    // fcm_options: None,
-    // };
+    let device_token = "e3A7FLAMSk21rVEBqwxbXC:APA91bGcn9h5oGUYRDiAHG7US354b5tbekOGT7CkAnQdIB3HRUpOUVyn5gxxlq0xAdPn0wd4xRYIouj_Fs03PorfBIXho1N-b6VYy5SlS2NBTWQqttcWkc0".to_string();
+    let message = Message {
+    data: Some(json!({
+       "message": "Howdy!",
+    })),
+    notification: Some(Notification {
+        title: Some("Hello".to_string()),
+        body: Some(format!("it's {}", chrono::Utc::now())),
+        image: None,
+    }),
+    target: Target::Token(device_token),
+    android: None,
+    webpush: None,
+    apns: None,
+    fcm_options: None,
+    };
 
-    // client.send(message).await.unwrap();
+    client.send(message).await.unwrap();
 
     let db = get_database().await;
 

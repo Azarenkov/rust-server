@@ -4,15 +4,16 @@ use crate::application::repositories::sync_service_abstract::SyncServiceAbstract
 use crate::application::services::sync_service::SyncService;
 use crate::{adapters::db::db_adapter::DbAdapter, adapters::api::client::ApiClient, infrastructure::repositories::db_repository_abstract::DbRepositoryAbstract};
 use crate::adapters::utils::errors::DbErrors;
+use crate::domain::auth_notification_tokens::Tokens;
 
-#[post("/add_token/{token}")]
-async fn check_token(token: web::Path<String>, db: web::Data<Collection<Document>>) -> HttpResponse {
-    let token = token.into_inner();
+#[post("/add_token")]
+async fn check_token(form: web::Form<Tokens>, db: web::Data<Collection<Document>>) -> HttpResponse {
+    // let token = token.into_inner();
+
+    let token = &form.token;
 
     let service = SyncService::new(db.get_ref().clone());
-
     let db = DbAdapter::new(db.get_ref().clone());
-
     let api_client = ApiClient::new(&token, None, None);
 
     match api_client.validate_token().await {

@@ -6,6 +6,7 @@ mod application;
 use std::error::Error;
 use std::{env, thread};
 use actix_web::{App, HttpServer};
+use adapters::messaging::fcm_adapter::FcmAdapter;
 use application::services::actix_service::{check_token, get_deadlines, get_grades};
 use fcm::message::{Message, Notification, Target};
 use infrastructure::{db, web_server, firebase_messaging};
@@ -21,7 +22,7 @@ use actix_web::web;
 async fn main() -> Result<(), Box<dyn Error>> {
 
     let messaging_client = firebase_messaging::get_messaging_service("service_account_key.json".to_string()).await?;
-    let (tx, mut rx) = mpsc::channel::<Message>(32);
+    let (tx, mut rx) = mpsc::channel::<FcmAdapter>(64);
     
     task::spawn(async move {
         while let Some(message) = rx.recv().await {
@@ -38,7 +39,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     tokio::spawn(async move {
         loop {
             
-            if let Err(e) = service.sync_all_data().await {
+            if let Err(e) = service.sync_all_data(Some(tx.clone())).await {
                 sleep(Duration::from_secs(10)).await;
                 println!("{:?}", e);
                 continue;

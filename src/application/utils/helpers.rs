@@ -1,8 +1,9 @@
 use actix_web::web::Json;
 use chrono::{NaiveDateTime, NaiveTime, ParseError, TimeZone, Timelike, Utc};
+use tokio::{sync::mpsc::Sender, task};
 use std::{error, fmt::Debug, ptr::null};
 use regex::Regex;
-use crate::domain::{course::Course, user::User};
+use crate::{adapters::messaging::fcm_adapter::FcmAdapter, domain::{course::Course, user::User}};
 use serde_json::{error::Error as JsonError, Value};
 use jsondiff::diff;
 
@@ -33,4 +34,12 @@ pub fn parse_time_to_seconds(time_str: &str) -> Result<i64, ParseError> {
     let naive_time = NaiveTime::parse_from_str(time_str, format)?;
     let seconds = naive_time.num_seconds_from_midnight() as i64;
     Ok(seconds)
+}
+
+pub fn tx_sender(message: FcmAdapter, tx: Sender<FcmAdapter>) {
+    task::spawn(async move {
+        if let Err(e) = tx.send(message).await {
+            eprintln!("Failed to send message to channel: {:?}", e);
+        }
+    });
 }

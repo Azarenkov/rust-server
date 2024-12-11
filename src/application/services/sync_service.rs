@@ -1,12 +1,14 @@
 use actix_web::web::Json;
+use fcm::message::Message;
 use mongodb::bson::{self};
+use tokio::sync::mpsc;
 use tokio::task;
 use crate::adapters::api::client::ApiClient;
 use crate::adapters::db::db_adapter::DbAdapter;
 use crate::adapters::messaging::fcm_adapter::FcmAdapter;
 use crate::application::repositories::fcm_abstract::FcmRepositoryAbstract;
 use crate::application::repositories::sync_service_abstract::SyncServiceAbstract;
-use crate::application::utils::helpers::{extract_link_and_date, extract_time, parse_time_to_seconds};
+use crate::application::utils::helpers::{extract_link_and_date, extract_time, parse_time_to_seconds, tx_sender};
 use crate::domain::utils::compare;
 use crate::infrastructure::repositories::db_repository_abstract::DbRepositoryAbstract;
 use crate::application::utils::errors::SyncError;
@@ -55,7 +57,7 @@ impl SyncServiceAbstract for SyncService {
         Ok(())
     }
 
-    async fn sync_courses_with_database(&self) -> Result<(), SyncError> {
+    async fn sync_courses_with_database(&self, tx: Option<mpsc::Sender<FcmAdapter>>) -> Result<(), SyncError> {
         let db = DbAdapter::new(self.db.clone());
         let vectors = db.get_tokens_and_ids().await?;
 
@@ -71,24 +73,21 @@ impl SyncServiceAbstract for SyncService {
                     if difference.is_empty() {
                         println!("{}", "no".to_string())
                     } else {
-                        match db.get_device_token(&vector.0).await {
-                            Ok(device_token) => {
-                                let title = "New Course: ".to_string();
+                        if let Some(ref tx) = tx {
+                            match db.get_device_token(&vector.0).await {
+                                Ok(device_token) => {
+                                    let title = "New Course: ".to_string();
 
-                                let (tx, rx) = tokio::sync::mpsc::channel(32);
-                                for new_course in difference.iter() {
-                                    let body = &new_course.fullname;
-                                    let message: FcmAdapter = FcmAdapter::new(&device_token, &title, &body, None);
-                                    let tx_clone = tx.clone();
+                                    for new_course in difference.iter() {
+                                        let body = &new_course.fullname;
+                                        let message: FcmAdapter = FcmAdapter::new(&device_token, &title, &body, None);
+                                        let tx_clone = tx.clone();
 
-                                    task::spawn(async move {
-                                        if let Err(e) = tx_clone.send(message).await {
-                                            eprintln!("Failed to send message to channel: {:?}", e);
-                                        }
-                                    });
-                                }
-                            },
-                            Err(_e) => (),
+                                        tx_sender(message, tx_clone);
+                                    }
+                                },
+                                Err(_e) => (),
+                            }
                         }
 
                         db.update_courses_info(&vector.0, courses).await?;
@@ -208,10 +207,10 @@ impl SyncServiceAbstract for SyncService {
         Ok(())
     }
     
-    async fn sync_all_data(&self) -> Result<(), SyncError> {
+    async fn sync_all_data(&self, tx: Option<mpsc::Sender<FcmAdapter>>) -> Result<(), SyncError> {
         
         self.sync_data_with_database().await?;
-        self.sync_courses_with_database().await?;
+        self.sync_courses_with_database(tx).await?;
         self.sync_grades_with_database().await?;
         self.sync_deadlines_with_database().await?;
 

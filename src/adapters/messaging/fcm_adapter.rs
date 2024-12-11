@@ -1,8 +1,4 @@
 use fcm::message::{Message, Notification, Target};
-use fcm::response::FcmResponse;
-use fcm::{FcmClient, FcmClientError};
-use serde_json::json;
-use crate::application::repositories::fcm_abstract::FcmRepositoryAbstract;
 
 pub struct FcmAdapter {
     pub message: Message
@@ -14,9 +10,7 @@ impl FcmAdapter {
 
         if let Some(old_body) = old_body {
             message = Message {
-                data: Some(json!({
-                   "message": "Howdy!",
-                })),
+                data: None,
                 notification: Some(Notification {
                     title: Some(title.to_string()),
                     body: Some(format!("{} {}", old_body, body)),
@@ -30,9 +24,7 @@ impl FcmAdapter {
                 };
         } else {
             message = Message {
-                data: Some(json!({
-                   "message": "Howdy!",
-                })),
+                data: None,
                 notification: Some(Notification {
                     title: Some(title.to_string()),
                     body: Some(format!("{}", body)),
@@ -48,5 +40,15 @@ impl FcmAdapter {
 
         FcmAdapter { message: message }
     }
+}
+
+impl AsRef<Message> for FcmAdapter {
+
+    fn as_ref(&self) -> &Message {
+
+        &self.message
+
+    }
+
 }
 

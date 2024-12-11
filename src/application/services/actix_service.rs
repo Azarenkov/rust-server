@@ -43,7 +43,7 @@ async fn check_token(form: web::Json<Tokens>, db: web::Data<Collection<Document>
                                         match db.add_device_token(token, device_token).await {
                                             Ok(_) => {
                                                 task::spawn(async move {
-                                                    if let Err(e) = service.sync_all_data().await {
+                                                    if let Err(e) = service.sync_all_data(None).await {
                                                         eprintln!("Error syncing data: {:?}", e);
                                                     }
                                                 });
@@ -54,7 +54,7 @@ async fn check_token(form: web::Json<Tokens>, db: web::Data<Collection<Document>
                                     } else {
 
                                     tokio::spawn(async move {
-                                        if let Err(e) = service.sync_all_data().await {
+                                        if let Err(e) = service.sync_all_data(None).await {
                                             eprintln!("Error syncing data: {:?}", e);
                                         }
                                     });

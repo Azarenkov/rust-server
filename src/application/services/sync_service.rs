@@ -1,13 +1,18 @@
+use actix_web::web::Json;
 use mongodb::bson::{self};
-use serde_json::{from_str, to_string, Value};
+use tokio::task;
 use crate::adapters::api::client::ApiClient;
 use crate::adapters::db::db_adapter::DbAdapter;
+use crate::adapters::messaging::fcm_adapter::FcmAdapter;
+use crate::application::repositories::fcm_abstract::FcmRepositoryAbstract;
 use crate::application::repositories::sync_service_abstract::SyncServiceAbstract;
-use crate::application::utils::helpers::{compare, extract_link_and_date, extract_time, parse_time_to_seconds};
+use crate::application::utils::helpers::{extract_link_and_date, extract_time, parse_time_to_seconds};
+use crate::domain::utils::compare;
 use crate::infrastructure::repositories::db_repository_abstract::DbRepositoryAbstract;
 use crate::application::utils::errors::SyncError;
 use chrono::Utc;
 use crate::adapters::utils::errors::DbErrors;
+
 
 pub struct SyncService {
     pub db: mongodb::Collection<bson::Document>,
@@ -32,12 +37,12 @@ impl SyncServiceAbstract for SyncService {
                     let user_value = serde_json::to_string(&user).map_err(|e| SyncError::SerdeError(e))?;
                     let user_db_value = serde_json::to_string(&user_info).map_err(|e| SyncError::SerdeError(e))?;
                     
-                    let comparing = compare(user_value, user_db_value);
+                    // let comparing = compare(user_value, user_db_value);
 
-                    match comparing {
-                        true => (),
-                        false => db.update_user_info(&token, user).await?,                        
-                    }
+                    // match comparing {
+                    //     true => (),
+                    //     false => db.update_user_info(&token, user).await?,                        
+                    // }
                 },
                 Err(e) => {
                     match e {
@@ -61,15 +66,36 @@ impl SyncServiceAbstract for SyncService {
 
             match db.get_courses(&vector.0).await {
                 Ok(db_courses) => {
-                    let courses_value = serde_json::to_string(&courses).map_err(|e| SyncError::SerdeError(e))?;
-                    let db_courses_value = serde_json::to_string(&db_courses).map_err(|e| SyncError::SerdeError(e))?;
+                   
+                    let difference = compare(courses.clone(), db_courses.clone());
+                    if difference.is_empty() {
+                        println!("{}", "no".to_string())
+                    } else {
+                        match db.get_device_token(&vector.0).await {
+                            Ok(device_token) => {
+                                let title = "New Course: ".to_string();
 
-                    let comparing = compare(courses_value, db_courses_value);
+                                let (tx, rx) = tokio::sync::mpsc::channel(32);
+                                for new_course in difference.iter() {
+                                    let body = &new_course.fullname;
+                                    let message: FcmAdapter = FcmAdapter::new(&device_token, &title, &body, None);
+                                    let tx_clone = tx.clone();
 
-                    match comparing {
-                        true => (),
-                        false => db.update_courses_info(&vector.0, courses).await?,
-                    }
+                                    task::spawn(async move {
+                                        if let Err(e) = tx_clone.send(message).await {
+                                            eprintln!("Failed to send message to channel: {:?}", e);
+                                        }
+                                    });
+                                }
+                            },
+                            Err(_e) => (),
+                        }
+
+                        db.update_courses_info(&vector.0, courses).await?;
+                        difference.iter().for_each(|a| {
+                            println!("{:?}", a.fullname)
+                        });
+                    }    
                 },
                 Err(e) => {
                     match e {
@@ -107,12 +133,12 @@ impl SyncServiceAbstract for SyncService {
                     let grades_value = serde_json::to_string(&grades_data).map_err(|e| SyncError::SerdeError(e))?;
                     let db_grades_value = serde_json::to_string(&db_grades).map_err(|e| SyncError::SerdeError(e))?;
 
-                    let comparing = compare(grades_value, db_grades_value);
+                    // let comparing = compare(grades_value, db_grades_value);
 
-                    match comparing {
-                        true => (),
-                        false => db.update_grades_info(&vector.token, grades_data).await?,
-                    }
+                    // match comparing {
+                    //     true => (),
+                    //     false => db.update_grades_info(&vector.token, grades_data).await?,
+                    // }
                 },
                 Err(e) => {
                     match e {
@@ -164,12 +190,12 @@ impl SyncServiceAbstract for SyncService {
                     let deadlines_value = serde_json::to_string(&deadlines_data).map_err(|e| SyncError::SerdeError(e))?;
                     let db_deadlines_value = serde_json::to_string(&db_deadlines).map_err(|e| SyncError::SerdeError(e))?;
 
-                    let comparing = compare(deadlines_value, db_deadlines_value);
+                    // let comparing = compare(deadlines_value, db_deadlines_value);
 
-                    match comparing {
-                        true => (),
-                        false => db.update_deadline_info(&token, deadlines_data).await?,
-                    }
+                    // match comparing {
+                    //     true => (),
+                    //     false => db.update_deadline_info(&token, deadlines_data).await?,
+                    // }
                 },
                 Err(e) => {
                     match e {

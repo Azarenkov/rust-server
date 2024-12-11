@@ -143,7 +143,7 @@ impl DbRepositoryAbstract for DbAdapter {
         }
     }
     
-    async fn get_courses(&self, token: &String) -> Result<Array, DbErrors> {
+    async fn get_courses(&self, token: &String) -> Result<Vec<Course>, DbErrors> {
         let document = self.collection.find_one(doc! { "token": &token }, None).await.map_err(|e| {
             DbErrors::DbError(e)
         })?;
@@ -151,7 +151,8 @@ impl DbRepositoryAbstract for DbAdapter {
         match document {
             Some(doc) => {
                 if let Some(courses) = doc.get_array("courses").ok() {
-                    Ok(courses.clone())
+                    let courses: Vec<Course> = courses.iter().filter_map(|course| bson::from_bson(course.clone()).ok()).collect();
+                    Ok(courses)
                 } else {
                     Err(DbErrors::NotFound())
                 }
@@ -220,5 +221,22 @@ impl DbRepositoryAbstract for DbAdapter {
         println!("Device token updated!");
 
         Ok(())
+    }
+
+    async fn get_device_token(&self, token: &String) -> Result<String, DbErrors> {
+        let document = self.collection.find_one(doc! { "token": &token }, None).await.map_err(|e| {
+            DbErrors::DbError(e)
+        })?;
+
+        match document {
+            Some(doc) => {
+                if let Some(device_token) = doc.get_str("device_token").ok() {
+                    Ok(device_token.to_string())
+                } else {
+                    Err(DbErrors::NotFound())
+                }
+            },
+            None => Err(DbErrors::NotFound()),
+        }
     }
 }

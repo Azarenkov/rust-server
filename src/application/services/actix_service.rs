@@ -1,5 +1,6 @@
 use actix_web::{get, post, web, HttpResponse};
 use mongodb::{bson::Document, Collection};
+use tokio::task;
 use crate::application::repositories::sync_service_abstract::SyncServiceAbstract;
 use crate::application::services::sync_service::SyncService;
 use crate::{adapters::db::db_adapter::DbAdapter, adapters::api::client::ApiClient, infrastructure::repositories::db_repository_abstract::DbRepositoryAbstract};
@@ -41,7 +42,7 @@ async fn check_token(form: web::Json<Tokens>, db: web::Data<Collection<Document>
                                     if let Some(device_token) = &form.device_token {
                                         match db.add_device_token(token, device_token).await {
                                             Ok(_) => {
-                                                tokio::spawn(async move {
+                                                task::spawn(async move {
                                                     if let Err(e) = service.sync_all_data().await {
                                                         eprintln!("Error syncing data: {:?}", e);
                                                     }

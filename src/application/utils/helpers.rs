@@ -1,7 +1,10 @@
+use actix_web::web::Json;
 use chrono::{NaiveDateTime, NaiveTime, ParseError, TimeZone, Timelike, Utc};
+use std::{error, fmt::Debug, ptr::null};
 use regex::Regex;
 use crate::domain::{course::Course, user::User};
-use serde_json::error::Error as JsonError;
+use serde_json::{error::Error as JsonError, Value};
+use jsondiff::diff;
 
 
 
@@ -13,14 +16,6 @@ pub fn extract_link_and_date(html: &str) -> Option<String> {
         Some(format!("{} {}", date, time))
     } else {
         None
-    }
-}
-
-pub fn compare(data: String, db_data: String) -> bool {
-    if data != db_data {
-        false
-    } else {
-        true
     }
 }
 

@@ -1,8 +1,6 @@
 use mongodb::error::Error as MongoError;
 use reqwest::Error as ReqwestError;
 use serde_json::error::Error as JsonError;
-use chrono::ParseError;
-
 
 #[derive(Debug)]
 pub enum SyncError {

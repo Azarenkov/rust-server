@@ -1,13 +1,12 @@
-pub fn compare<T: PartialEq + Ord + Clone>(data: Vec<T>, db_data: Vec<T>) -> Vec<T> {
-    let mut data_sorted = data;
-    let mut db_data_sorted = db_data;
-    data_sorted.sort();
-    db_data_sorted.sort();
+use serde::Serialize;
 
-    let diff: Vec<T> = data_sorted
-        .into_iter()
-        .filter(|item| !db_data_sorted.contains(item))
-        .collect();
+pub fn compare_objects<T: Clone + Serialize>(data: T, db_data: T) -> Option<T> {
+    let data_json = serde_json::to_string(&data).unwrap();
+    let db_data_json = serde_json::to_string(&db_data).unwrap();
 
-    diff
+    if data_json != db_data_json {
+        Some(data)
+    } else {
+        None
+    }
 }

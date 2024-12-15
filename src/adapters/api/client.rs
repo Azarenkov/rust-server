@@ -88,11 +88,12 @@ impl ApiClient {
     pub async fn get_deadlines(&self) -> Result<Events, ReqwestErr> {
         let function = Functions::GetDeadlines.new();
 
-        let url = format!("{}{}{}{}",
+        let url = format!("{}{}{}{}{}",
             self.base_url,
             self.token,
             format!("&wsfunction={}", function),
-            self.format
+            self.format,
+            self.course_id.clone().unwrap_or_default()
         );
 
         let response = self.client.get(&url).send().await?.json::<Events>().await?;

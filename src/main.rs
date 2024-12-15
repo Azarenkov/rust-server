@@ -4,19 +4,13 @@ mod infrastructure;
 mod application;
 
 use std::error::Error;
-use std::{env, thread};
-use actix_web::{App, HttpServer};
 use adapters::messaging::fcm_adapter::FcmAdapter;
-use application::services::actix_service::{check_token, get_deadlines, get_grades};
-use fcm::message::{Message, Notification, Target};
 use infrastructure::{db, web_server, firebase_messaging};
-use serde_json::json;
 use tokio::sync::mpsc;
 use tokio::task;
 use tokio::time::{sleep, Duration};
-use application::services::{actix_service::get_user_info, actix_service::get_courses, sync_service::SyncService};
+use application::services::sync_service::SyncService;
 use application::repositories::sync_service_abstract::SyncServiceAbstract;
-use actix_web::web;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {

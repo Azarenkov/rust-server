@@ -1,5 +1,5 @@
 use futures_util::TryStreamExt;
-use mongodb::bson::{self, doc, document, Array, Document};
+use mongodb::bson::{self, doc, Document, Bson};
 use mongodb::Collection;
 use mongodb::error::Error as mongodbErr;
 use crate::domain::course::Course;
@@ -126,7 +126,7 @@ impl DbRepositoryAbstract for DbAdapter {
     }
     
 
-    async fn get_user_info(&self, token: &String) -> Result<Document, DbErrors> {
+    async fn get_user_info(&self, token: &String) -> Result<User, DbErrors> {
         let document = self.collection.find_one(doc! { "token": &token }, None).await.map_err(|e| {
             DbErrors::DbError(e)
         })?;
@@ -134,7 +134,13 @@ impl DbRepositoryAbstract for DbAdapter {
         match document {
             Some(doc) => {
                 if let Some(user_info) = doc.get_document("user_info").ok() {
-                    Ok(user_info.clone())
+                    match bson::from_bson::<User>(Bson::Document(user_info.clone())) {
+                        Ok(user) => Ok(user),
+                        Err(e) => {
+                            eprintln!("Deserialization error: {:?}", e);
+                            Err(DbErrors::DbError(e.into()))
+                        }
+                    }
                 } else {
                     Err(DbErrors::NotFound())
                 }
@@ -161,7 +167,7 @@ impl DbRepositoryAbstract for DbAdapter {
         }
     }
     
-    async fn get_grades(&self, token: &String) -> Result<Array, DbErrors> {
+    async fn get_grades(&self, token: &String) -> Result<Vec<GradeItems>, DbErrors> {
         let document = self.collection.find_one(doc! { "token": &token }, None).await.map_err(|e| {
             DbErrors::DbError(e)
         })?;
@@ -169,7 +175,8 @@ impl DbRepositoryAbstract for DbAdapter {
         match document {
             Some(doc) => {
                 if let Some(grades) = doc.get_array("grades").ok() {
-                    Ok(grades.clone())
+                    let grades = grades.iter().filter_map(|grade| bson::from_bson(grade.clone()).ok()).collect();
+                    Ok(grades)
                 } else {
                     Err(DbErrors::NotFound())
                 }
@@ -178,7 +185,7 @@ impl DbRepositoryAbstract for DbAdapter {
         }
     }
     
-    async fn get_deadlines(&self, token: &String) -> Result<Array, DbErrors> {
+    async fn get_deadlines(&self, token: &String) -> Result<Option<Vec<Deadline>>, DbErrors> {
         let document = self.collection.find_one(doc! { "token": &token }, None).await.map_err(|e| {
             DbErrors::DbError(e)
         })?;
@@ -186,7 +193,13 @@ impl DbRepositoryAbstract for DbAdapter {
         match document {
             Some(doc) => {
                 if let Some(deadlines) = doc.get_array("deadlines").ok() {
-                    Ok(deadlines.clone())
+                    
+                    if deadlines.is_empty() {
+                        return Ok(None);
+                    }
+                    let deadlines: Vec<Deadline> = deadlines.iter().filter_map(|deadline| bson::from_bson(deadline.clone()).ok()).collect();
+
+                    Ok(Some(deadlines))
                 } else {
                     Err(DbErrors::NotFound())
                 }

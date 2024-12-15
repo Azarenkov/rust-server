@@ -1,16 +1,10 @@
-use actix_web::web::Json;
-use chrono::{NaiveDateTime, NaiveTime, ParseError, TimeZone, Timelike, Utc};
+use chrono::{NaiveTime, ParseError, Timelike};
 use tokio::{sync::mpsc::Sender, task};
-use std::{error, fmt::Debug, ptr::null};
 use regex::Regex;
-use crate::{adapters::messaging::fcm_adapter::FcmAdapter, domain::{course::Course, user::User}};
-use serde_json::{error::Error as JsonError, Value};
-use jsondiff::diff;
+use crate::adapters::messaging::fcm_adapter::FcmAdapter;
 
-
-
-pub fn extract_link_and_date(html: &str) -> Option<String> {
-    let re = Regex::new(r#"<a class="dimmed" href="[^"]+">([^<]+)</a>, ([^<]+)</span>"#).expect("Failed to create regex");
+pub fn extract_date_and_time(html: &str) -> Option<String> {
+    let re = Regex::new(r#"<a href="[^"]+">([^<]+)</a>, (\d{2}:\d{2})"#).expect("Failed to create regex");
     if let Some(captures) = re.captures(html) {
         let date = captures.get(1)?.as_str().to_string();
         let time = captures.get(2)?.as_str().to_string();

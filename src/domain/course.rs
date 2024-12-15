@@ -6,8 +6,7 @@ pub struct Course {
     pub fullname: String,
     // category: String,
     pub completed: Option<bool>,
-    // start_date: i64,
-    // end_date: i64,
+    pub enddate: i64,
 }
 
 impl ToString for Course {

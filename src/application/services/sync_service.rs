@@ -1,20 +1,17 @@
-use actix_web::web::Json;
-use fcm::message::Message;
+use std::collections::HashMap;
+
 use mongodb::bson::{self};
 use tokio::sync::mpsc;
-use tokio::task;
 use crate::adapters::api::client::ApiClient;
 use crate::adapters::db::db_adapter::DbAdapter;
 use crate::adapters::messaging::fcm_adapter::FcmAdapter;
-use crate::application::repositories::fcm_abstract::FcmRepositoryAbstract;
 use crate::application::repositories::sync_service_abstract::SyncServiceAbstract;
-use crate::application::utils::helpers::{extract_link_and_date, extract_time, parse_time_to_seconds, tx_sender};
-use crate::domain::utils::compare;
+use crate::application::utils::helpers::{extract_date_and_time, extract_time, parse_time_to_seconds, tx_sender};
+use crate::domain::utils::compare_objects;
 use crate::infrastructure::repositories::db_repository_abstract::DbRepositoryAbstract;
 use crate::application::utils::errors::SyncError;
 use chrono::Utc;
 use crate::adapters::utils::errors::DbErrors;
-
 
 pub struct SyncService {
     pub db: mongodb::Collection<bson::Document>,
@@ -27,7 +24,7 @@ impl SyncService {
 }
 
 impl SyncServiceAbstract for SyncService {
-    async fn sync_data_with_database(&self) -> Result<(), SyncError> {
+    async fn sync_data_with_database(&self, tx: Option<mpsc::Sender<FcmAdapter>>) -> Result<(), SyncError> {
         let db = DbAdapter::new(self.db.clone());
         let tokens = db.get_users_tokens().await?;
         for token in tokens {
@@ -36,15 +33,29 @@ impl SyncServiceAbstract for SyncService {
 
             match db.get_user_info(&token).await {
                 Ok(user_info) => {
-                    let user_value = serde_json::to_string(&user).map_err(|e| SyncError::SerdeError(e))?;
-                    let user_db_value = serde_json::to_string(&user_info).map_err(|e| SyncError::SerdeError(e))?;
-                    
-                    // let comparing = compare(user_value, user_db_value);
+                        
+                    if let Some(difference) = compare_objects(user.clone(), user_info.clone()) {
+                        if let Some(ref tx) = tx {
+                            match db.get_device_token(&token).await {
+                                Ok(device_token) => {
 
-                    // match comparing {
-                    //     true => (),
-                    //     false => db.update_user_info(&token, user).await?,                        
-                    // }
+                                        if let Some(username) = &difference.username {
+                                            if let Some(fullname) = &difference.fullname {
+                                                let title = "New User Data ".to_string();
+                                                let body = format!("Email: {}\nFullname: {}", username, fullname);
+                                                let message: FcmAdapter = FcmAdapter::new(&device_token, &title, &body, None);
+                                                let tx_clone = tx.clone();
+
+                                                tx_sender(message, tx_clone);
+                                            }
+                                        }
+                                },
+                                Err(_e) => (),
+                            }
+                        }
+                        db.update_user_info(&token, user).await?;
+                    }
+
                 },
                 Err(e) => {
                     match e {
@@ -68,33 +79,25 @@ impl SyncServiceAbstract for SyncService {
 
             match db.get_courses(&vector.0).await {
                 Ok(db_courses) => {
-                   
-                    let difference = compare(courses.clone(), db_courses.clone());
-                    if difference.is_empty() {
-                        println!("{}", "no".to_string())
-                    } else {
-                        if let Some(ref tx) = tx {
-                            match db.get_device_token(&vector.0).await {
-                                Ok(device_token) => {
-                                    let title = "New Course: ".to_string();
 
-                                    for new_course in difference.iter() {
-                                        let body = &new_course.fullname;
+                    for course in courses.iter() {
+                        if !db_courses.iter().any(|db_course| db_course.fullname == course.fullname) {
+                            if let Some(ref tx) = tx {
+                                match db.get_device_token(&vector.0).await {
+                                    Ok(device_token) => {
+                                        let title = "New Course".to_string();
+                                        let body = &course.fullname;
                                         let message: FcmAdapter = FcmAdapter::new(&device_token, &title, &body, None);
                                         let tx_clone = tx.clone();
-
                                         tx_sender(message, tx_clone);
-                                    }
-                                },
-                                Err(_e) => (),
-                            }
-                        }
 
-                        db.update_courses_info(&vector.0, courses).await?;
-                        difference.iter().for_each(|a| {
-                            println!("{:?}", a.fullname)
-                        });
-                    }    
+                                    },
+                                    Err(_e) => (),
+                                }
+                            }
+                            db.update_courses_info(&vector.0, courses.clone()).await?;                     
+                        }
+                    }
                 },
                 Err(e) => {
                     match e {
@@ -108,7 +111,7 @@ impl SyncServiceAbstract for SyncService {
         Ok(())
     }
     
-    async fn sync_grades_with_database(&self) -> Result<(), SyncError> {
+    async fn sync_grades_with_database(&self, tx: Option<mpsc::Sender<FcmAdapter>>) -> Result<(), SyncError> {
         let db = DbAdapter::new(self.db.clone());
         let vectors = db.get_tokens_and_userdid_and_courses().await?;
 
@@ -119,7 +122,6 @@ impl SyncServiceAbstract for SyncService {
             for course in courses {
                 let api_client = ApiClient::new(&vector.token, Some(vector.user_id.to_string()), Some(course.id.to_string()));
                 let grades = api_client.get_grades().await?;
-
                 grades.usergrades.clone().into_iter().for_each(|mut grade|{
                     grade.coursename = Some(course.fullname.clone());
                     grades_data.push(grade);
@@ -129,15 +131,43 @@ impl SyncServiceAbstract for SyncService {
 
             match db.get_grades(&vector.token).await {
                 Ok(db_grades) => {
-                    let grades_value = serde_json::to_string(&grades_data).map_err(|e| SyncError::SerdeError(e))?;
-                    let db_grades_value = serde_json::to_string(&db_grades).map_err(|e| SyncError::SerdeError(e))?;
+                    
+                    let mut grades_map_new = HashMap::new();
+                    let mut grades_map_old = HashMap::new();
+                    
+                    for grade in grades_data.iter() {
+                        grades_map_new.insert(grade.coursename.clone().unwrap_or_default(), grade.gradeitems.clone());
+                    }
 
-                    // let comparing = compare(grades_value, db_grades_value);
-
-                    // match comparing {
-                    //     true => (),
-                    //     false => db.update_grades_info(&vector.token, grades_data).await?,
-                    // }
+                    for grade in db_grades.iter() {
+                        grades_map_old.insert(grade.coursename.clone().unwrap_or_default(), grade.gradeitems.clone());
+                    }
+                    
+                    for (i, j) in grades_map_new.iter() {
+                        if let Some(value) = grades_map_old.get_key_value(i) {
+                            for (m, k) in j.iter().zip(value.1) {
+                                if m != k {
+                                    if let Some(ref tx) = tx {
+                                        let device_token = db.get_device_token(&vector.token).await;
+                                        match device_token {
+                                            Ok(device_token) => {
+                                                let title = format!("{}", m.itemname);
+                                                let body = &m.percentageformatted;
+                                                let old_body = format!("{}\n{} ->", i, &k.percentageformatted);
+                                                let message: FcmAdapter = FcmAdapter::new(&device_token, &title, &body, Some(&old_body));
+                                                let tx_clone = tx.clone();
+                                                tx_sender(message, tx_clone);
+                                            },
+                                            Err(_e) => (),
+                                        }
+                                    }
+                                    db.update_grades_info(&vector.token, grades_data.clone()).await?
+                                }
+                            }
+                        } else {
+                            db.update_grades_info(&vector.token, grades_data.clone()).await?
+                        }
+                    }
                 },
                 Err(e) => {
                     match e {
@@ -150,69 +180,91 @@ impl SyncServiceAbstract for SyncService {
         Ok(())
     }
     
-    async fn sync_deadlines_with_database(&self) -> Result<(), SyncError> {
+    async fn sync_deadlines_with_database(&self, tx: Option<mpsc::Sender<FcmAdapter>>) -> Result<(), SyncError> {
 
         let db = DbAdapter::new(self.db.clone());
-        let tokens = db.get_users_tokens().await?;
+        let vectors = db.get_tokens_and_userdid_and_courses().await?;
 
-        for token in tokens {
+        let current_time = Utc::now().with_timezone(&chrono::FixedOffset::east(6 * 3600));
+        let current_unix_time = current_time.timestamp();
 
-            let api_client = ApiClient::new(&token, None, None);
+        for vector in vectors {
+            let courses = vector.courses;
             let mut deadlines_data = Vec::new();
 
-            let deadlines = api_client.get_deadlines().await?;
+            for course in courses {
+                let api_client = ApiClient::new(&vector.token, Some(vector.user_id.to_string()), Some(course.id.to_string()));
+                let deadlines = api_client.get_deadlines().await?;
+                deadlines.events.clone().into_iter().for_each(|mut deadline|{
+                    deadline.coursename = Some(course.fullname.clone());
 
-            for mut deadline in deadlines.events.clone().into_iter(){
-                let current_time = Utc::now().with_timezone(&chrono::FixedOffset::east(6 * 3600));
-                let current_unix_time = current_time.timestamp();
+                    let seconds_after_mid;
 
-                let seconds_after_mid;
-
-                if let Some(time_str) = extract_time(&deadline.formattedtime) {
-                    match parse_time_to_seconds(&time_str) {
-                        Ok(seconds) => seconds_after_mid = seconds,
-                        Err(_e) => continue,
+                    if let Some(time_str) = extract_time(&deadline.formattedtime) {
+                        match parse_time_to_seconds(&time_str) {
+                            Ok(seconds) => seconds_after_mid = seconds,
+                            Err(_e) => seconds_after_mid = 0,
+                        }
+                    } else {
+                        seconds_after_mid = 0;
                     }
-                } else {
-                    continue;
-                }
 
-                if (deadline.timeusermidnight + 100000000 + seconds_after_mid) > current_unix_time.try_into().unwrap() {
-                    let time_description= extract_link_and_date(&deadline.formattedtime);
-                    deadline.formattedtime = time_description.unwrap_or_else(|| "No time".to_string());                            
-                    deadlines_data.push(deadline);
-                }
-            };
+                    if deadline.timeusermidnight + seconds_after_mid >  current_unix_time.try_into().unwrap() {
+                        let time_description= extract_date_and_time(&deadline.formattedtime);
+                        deadline.formattedtime = time_description.unwrap_or_else(|| "No time".to_string());                            
+                        deadlines_data.push(deadline.clone());
+                    }
 
-            match db.get_deadlines(&token).await {
+                });
+            }
+
+            match db.get_deadlines(&vector.token).await {
                 Ok(db_deadlines) => {
-                    let deadlines_value = serde_json::to_string(&deadlines_data).map_err(|e| SyncError::SerdeError(e))?;
-                    let db_deadlines_value = serde_json::to_string(&db_deadlines).map_err(|e| SyncError::SerdeError(e))?;
-
-                    // let comparing = compare(deadlines_value, db_deadlines_value);
-
-                    // match comparing {
-                    //     true => (),
-                    //     false => db.update_deadline_info(&token, deadlines_data).await?,
-                    // }
+                    if let Some(db_deadlines) = db_deadlines {
+                        for (deadline, db_deadline) in deadlines_data.iter().zip(db_deadlines.iter()) {
+                            if deadline != db_deadline {
+                                if let Some(ref tx) = tx {
+                                    let device_token = db.get_device_token(&vector.token).await;
+                                    match device_token {
+                                        Ok(device_token) => {
+                                            let title = format!("{}", deadline.coursename.clone().unwrap_or_default());
+                                            let body = format!("{}\n{}", deadline.name, deadline.formattedtime);
+                                            let message: FcmAdapter = FcmAdapter::new(&device_token, &title, &body, None);
+                                            let tx_clone = tx.clone();
+                                            tx_sender(message, tx_clone);
+                                        },
+                                        Err(_e) => (),
+                                    }
+                                }
+                                db.update_deadline_info(&vector.token, deadlines_data.clone()).await?;
+                                return Ok(());
+                            } else if db_deadline.clone().name.is_empty() {
+                                println!("Empty");
+                            }
+                        }
+                    } else {
+                        db.update_deadline_info(&vector.token, deadlines_data.clone()).await?;
+                    };
                 },
                 Err(e) => {
                     match e {
-                        DbErrors::NotFound() => db.update_deadline_info(&token, deadlines_data).await?,
+                        DbErrors::NotFound() => db.update_deadline_info(&vector.token, deadlines_data).await?,
                         DbErrors::DbError(_error) => continue,
                     }
                 },
             }
+
         }
+
         Ok(())
     }
     
     async fn sync_all_data(&self, tx: Option<mpsc::Sender<FcmAdapter>>) -> Result<(), SyncError> {
         
-        self.sync_data_with_database().await?;
-        self.sync_courses_with_database(tx).await?;
-        self.sync_grades_with_database().await?;
-        self.sync_deadlines_with_database().await?;
+        self.sync_data_with_database(tx.clone()).await?;
+        self.sync_courses_with_database(tx.clone()).await?;
+        self.sync_grades_with_database(tx.clone()).await?;
+        self.sync_deadlines_with_database(tx.clone()).await?;
 
         Ok(())
     }

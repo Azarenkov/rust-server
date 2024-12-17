@@ -20,7 +20,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     
     task::spawn(async move {
         while let Some(message) = rx.recv().await {
-            if let Err(e) = messaging_client.send(message).await {
+            if let Err(e) = messaging_client.send(message.message).await {
                 eprintln!("Error sending message: {:?}", e);
             }
         }

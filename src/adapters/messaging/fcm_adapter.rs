@@ -1,4 +1,4 @@
-use fcm::message::{Message, Notification, Target};
+use fcm_rs::models::{ Message, Notification };
 
 pub struct FcmAdapter {
     pub message: Message
@@ -11,30 +11,20 @@ impl FcmAdapter {
         if let Some(old_body) = old_body {
             message = Message {
                 data: None,
+                token: Some(device_token.to_string()),
                 notification: Some(Notification {
                     title: Some(title.to_string()),
                     body: Some(format!("{} {}", old_body, body)),
-                    image: None,
                 }),
-                target: Target::Token(device_token.to_string()),
-                android: None,
-                webpush: None,
-                apns: None,
-                fcm_options: None,
-                };
+            };
         } else {
             message = Message {
                 data: None,
+                token: Some(device_token.to_string()),
                 notification: Some(Notification {
                     title: Some(title.to_string()),
                     body: Some(format!("{}", body)),
-                    image: None,
                 }),
-                target: Target::Token(device_token.to_string()),
-                android: None,
-                webpush: None,
-                apns: None,
-                fcm_options: None,
                 };
         }
 

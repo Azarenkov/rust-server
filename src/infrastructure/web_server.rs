@@ -13,7 +13,7 @@ pub async fn get_web_server(db: Collection<Document>) -> Result<(), Error> {
             .service(get_grades)
             .service(get_deadlines)
     })
-    .bind("0.0.0.0:8080")?
+    .bind("0.0.0.0:8020")?
     .run()
     .await?;
     Ok(())

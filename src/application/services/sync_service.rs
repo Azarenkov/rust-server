@@ -258,6 +258,50 @@ impl SyncServiceAbstract for SyncService {
 
         Ok(())
     }
+
+    async fn sync_grades_overview_with_databse(&self, tx: Option<mpsc::Sender<FcmAdapter>>) -> Result<(), SyncError> {
+        let db = DbAdapter::new(self.db.clone());
+        let vectors = db.get_tokens_and_userdid_and_courses().await?;
+
+        for vector in vectors.iter() {
+            let api_client = ApiClient::new(&vector.token, None, None);
+            let grades_overview = api_client.get_grades_overview().await?;
+            let mut grades = grades_overview.grades;
+
+            let courses = vector.courses.clone();
+
+            for course in courses.iter() {
+                for grade in grades.iter_mut() {
+                    if grade.courseid == course.id {
+                        grade.course_name = Some(course.fullname.clone())
+                    }
+                }
+            }
+
+            match db.get_grades_overview(&vector.token).await {
+                Ok(db_grades) => {
+                    if grades == db_grades {
+                        continue;
+                    } else {
+                        db.update_grades_overview(&vector.token, &grades).await?
+                    }
+                    
+                },
+                Err(e) => {
+                    match e {
+                        DbErrors::NotFound() => db.update_grades_overview(&vector.token, &grades).await?,
+                        DbErrors::DbError(_error) => continue,
+                    }
+                },
+            }
+
+
+            
+            
+        }
+
+        Ok(())
+    }
     
     async fn sync_all_data(&self, tx: Option<mpsc::Sender<FcmAdapter>>) -> Result<(), SyncError> {
         
@@ -265,8 +309,11 @@ impl SyncServiceAbstract for SyncService {
         self.sync_courses_with_database(tx.clone()).await?;
         self.sync_grades_with_database(tx.clone()).await?;
         self.sync_deadlines_with_database(tx.clone()).await?;
+        self.sync_grades_overview_with_databse(tx.clone()).await?;
 
         Ok(())
     }
+    
+
 }
 

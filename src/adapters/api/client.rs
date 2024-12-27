@@ -1,6 +1,7 @@
 use reqwest::Client;
 use reqwest::Error as ReqwestErr;
 use super::helpers::Functions;
+use crate::domain::grades_overview::GradesOverview;
 use crate::domain::{course::Course, deadline::Events, grade::Grades, user::User};
 
 pub struct ApiClient {
@@ -97,6 +98,20 @@ impl ApiClient {
         );
 
         let response = self.client.get(&url).send().await?.json::<Events>().await?;
+        Ok(response)
+    }
+
+    pub async fn get_grades_overview(&self) -> Result<GradesOverview, ReqwestErr> {
+        let function = Functions::GetGradesOverview.new();
+
+        let url = format!("{}{}{}{}",
+            self.base_url,
+            self.token,
+            format!("&wsfunction={}", function),
+            self.format,
+        );
+
+        let response = self.client.get(&url).send().await?.json::<GradesOverview>().await?;
         Ok(response)
     }
 }

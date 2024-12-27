@@ -6,6 +6,7 @@ use crate::domain::course::Course;
 use crate::domain::deadline::Deadline;
 use crate::domain::full_info::UserCourseInfo;
 use crate::domain::grade::GradeItems;
+use crate::domain::grades_overview::GradeOverview;
 use crate::domain::user::User;
 use crate::infrastructure::repositories::db_repository_abstract::DbRepositoryAbstract;
 use crate::adapters::utils::errors::DbErrors;
@@ -251,5 +252,36 @@ impl DbRepositoryAbstract for DbAdapter {
             },
             None => Err(DbErrors::NotFound()),
         }
+    }
+    
+    async fn get_grades_overview(&self, token: &String) -> Result<Vec<GradeOverview>, DbErrors> {
+        let document = self.collection.find_one(doc! { "token": &token }, None).await.map_err(|e| {
+            DbErrors::DbError(e)
+        })?;
+
+        match document {
+            Some(doc) => {
+                if let Some(grades_overview) = doc.get_array("grades_overview").ok() {
+                    let grades_overview: Vec<GradeOverview> = grades_overview.iter().filter_map(|grade| bson::from_bson(grade.clone()).ok()).collect();
+                    Ok(grades_overview)
+                } else {
+                    Err(DbErrors::NotFound())
+                }
+            },
+            None => Err(DbErrors::NotFound()),
+        }
+    }
+    
+    async fn update_grades_overview(&self, token: &String, grades_overview: &Vec<GradeOverview>) -> Result<(), mongodbErr> {
+        self.collection.update_one(
+            bson::doc! {"token": token},
+            bson::doc! {
+                "$set": {"grades_overview": bson::to_bson(&grades_overview).unwrap()}
+            },
+            None
+        ).await?;
+        println!("Grades_overview updated!");
+
+        Ok(())
     }
 }

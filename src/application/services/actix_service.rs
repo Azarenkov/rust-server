@@ -136,3 +136,19 @@ async fn get_deadlines(token: web::Path<String>, db: web::Data<Collection<Docume
         }
     }
 }
+
+#[get("/get_grades_overview/{token}")]
+async fn get_grades_overview(token: web::Path<String>, db: web::Data<Collection<Document>>) -> HttpResponse {
+    let token = token.into_inner();
+    let db = DbAdapter::new(db.get_ref().clone());
+
+    match db.get_grades_overview(&token).await {
+        Ok(grades_overview) => HttpResponse::Ok().json(grades_overview),
+        Err(e) => {
+            match e {
+                DbErrors::NotFound() => HttpResponse::NotFound().body(format!("No grades_overview with token: {}", token)),
+                DbErrors::DbError(e) => HttpResponse::InternalServerError().body(e.to_string()),
+            }
+        }
+    }
+}

@@ -1,8 +1,12 @@
 use std::collections::HashMap;
 use mongodb::bson::{self};
 use tokio::sync::mpsc;
-use crate::adapters::db::db_adapter::DbAdapter;
-use crate::adapters::db::db_repository_abstract::DbRepositoryAbstract;
+use crate::adapters::db::interfaces::course_repository_abstract::CourseRepositoryAbstract;
+use crate::adapters::db::interfaces::deadline_repository_abstract::DeadlineRepositoryAbstract;
+use crate::adapters::db::interfaces::grade_repository_abstract::GradeRepositoryAbstract;
+use crate::adapters::db::interfaces::token_repository_abstract::TokenRepositoryAbstract;
+use crate::adapters::db::interfaces::user_repository_abstract::UserRepositoryAbstract;
+use crate::adapters::db::model::DbAdapter;
 use crate::adapters::http::http_client_repository::ApiClient;
 use crate::adapters::messaging::fcm_adapter::FcmAdapter;
 use crate::application::interfaces::sync_service_abstract::SyncServiceAbstract;
@@ -183,7 +187,7 @@ impl SyncServiceAbstract for SyncService {
         let db = DbAdapter::new(self.db.clone());
         let vectors = db.get_tokens_and_userdid_and_courses().await?;
 
-        let current_time = Utc::now().with_timezone(&chrono::FixedOffset::east(6 * 3600));
+        let current_time = Utc::now().with_timezone(&chrono::FixedOffset::east_opt(6 * 3600).unwrap());
         let current_unix_time = current_time.timestamp();
 
         for vector in vectors {

@@ -9,8 +9,8 @@ use crate::adapters::db::interfaces::token_repository_abstract::TokenRepositoryA
 use crate::adapters::db::interfaces::user_repository_abstract::UserRepositoryAbstract;
 use crate::adapters::db::model::DbAdapter;
 use crate::adapters::http::http_client_repository::ApiClient;
-use crate::application::interfaces::sync_service_abstract::SyncServiceAbstract;
-use crate::application::services::sync_service::SyncService;
+use crate::application::sync_service::interfaces::sync_service_abstract::SyncServiceAbstract;
+use crate::application::sync_service::sync_service::SyncService;
 use crate::adapters::utils::errors::DbErrors;
 
 #[post("/add_token")]

@@ -1,6 +1,6 @@
 use std::time::Duration;
 use tokio::{sync::mpsc, task, time::sleep};
-use crate::{adapters::{db::db_connection::get_database, messaging::{fcm_adapter::FcmAdapter, fcm_connection::get_messaging_service}}, application::{interfaces::sync_service_abstract::SyncServiceAbstract, services::sync_service::SyncService}};
+use crate::{adapters::{db::db_connection::get_database, messaging::{fcm_adapter::FcmAdapter, fcm_connection::get_messaging_service}}, application::sync_service::{interfaces::sync_service_abstract::SyncServiceAbstract, sync_service::SyncService}};
 use std::error::Error;
 mod web_server;
 

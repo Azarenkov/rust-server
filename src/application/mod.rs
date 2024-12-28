@@ -1,3 +1,3 @@
 pub mod services;
 pub mod utils;
-pub mod repositories;
+pub mod interfaces;

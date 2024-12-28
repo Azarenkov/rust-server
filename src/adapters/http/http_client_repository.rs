@@ -1,8 +1,15 @@
 use reqwest::Client;
 use reqwest::Error as ReqwestErr;
+
+
+use crate::adapters::http_and_db_models::course::Course;
+use crate::adapters::http_and_db_models::deadline::Events;
+use crate::adapters::http_and_db_models::grade::Grades;
+use crate::adapters::http_and_db_models::grade_overview::GradesOverview;
+use crate::adapters::http_and_db_models::user::User;
+
 use super::helpers::Functions;
-use crate::domain::grades_overview::GradesOverview;
-use crate::domain::{course::Course, deadline::Events, grade::Grades, user::User};
+
 
 pub struct ApiClient {
     client: Client,

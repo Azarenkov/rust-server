@@ -1,2 +1,2 @@
-pub mod client;
-pub mod helpers;
+pub mod actix_controller;
+pub mod info_payloads;

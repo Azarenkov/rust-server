@@ -1,4 +1,5 @@
 use chrono::{NaiveTime, ParseError, Timelike};
+use serde::Serialize;
 use tokio::{sync::mpsc::Sender, task};
 use regex::Regex;
 use crate::adapters::messaging::fcm_adapter::FcmAdapter;
@@ -36,4 +37,15 @@ pub fn tx_sender(message: FcmAdapter, tx: Sender<FcmAdapter>) {
             eprintln!("Failed to send message to channel: {:?}", e);
         }
     });
+}
+
+pub fn compare_objects<T: Clone + Serialize>(data: T, db_data: T) -> Option<T> {
+    let data_json = serde_json::to_string(&data).unwrap();
+    let db_data_json = serde_json::to_string(&db_data).unwrap();
+
+    if data_json != db_data_json {
+        Some(data)
+    } else {
+        None
+    }
 }

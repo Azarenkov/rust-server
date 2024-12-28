@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+
 #[derive(Deserialize, Serialize, Clone, Ord, PartialOrd, PartialEq, Eq, Debug)]
 pub struct Course {
     pub id: i64,
@@ -14,4 +15,3 @@ impl ToString for Course {
         format!("Course {{ id: {}, fullname: {}, completed: {:?} }}", self.id, self.fullname, self.completed)
     }
 }
-

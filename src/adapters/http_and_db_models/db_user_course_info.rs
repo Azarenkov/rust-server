@@ -2,7 +2,6 @@ use serde::{Deserialize, Serialize};
 
 use super::course::Course;
 
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UserCourseInfo {
     pub token: String,

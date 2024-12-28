@@ -1,14 +1,12 @@
 use std::collections::HashMap;
-
 use mongodb::bson::{self};
 use tokio::sync::mpsc;
-use crate::adapters::api::client::ApiClient;
 use crate::adapters::db::db_adapter::DbAdapter;
+use crate::adapters::db::db_repository_abstract::DbRepositoryAbstract;
+use crate::adapters::http::http_client_repository::ApiClient;
 use crate::adapters::messaging::fcm_adapter::FcmAdapter;
-use crate::application::repositories::sync_service_abstract::SyncServiceAbstract;
-use crate::application::utils::helpers::{extract_date_and_time, extract_time, parse_time_to_seconds, tx_sender};
-use crate::domain::utils::compare_objects;
-use crate::infrastructure::repositories::db_repository_abstract::DbRepositoryAbstract;
+use crate::application::interfaces::sync_service_abstract::SyncServiceAbstract;
+use crate::application::utils::helpers::{compare_objects, extract_date_and_time, extract_time, parse_time_to_seconds, tx_sender};
 use crate::application::utils::errors::SyncError;
 use chrono::Utc;
 use crate::adapters::utils::errors::DbErrors;

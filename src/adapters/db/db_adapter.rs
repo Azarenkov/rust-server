@@ -2,14 +2,15 @@ use futures_util::TryStreamExt;
 use mongodb::bson::{self, doc, Document, Bson};
 use mongodb::Collection;
 use mongodb::error::Error as mongodbErr;
-use crate::domain::course::Course;
-use crate::domain::deadline::Deadline;
-use crate::domain::full_info::UserCourseInfo;
-use crate::domain::grade::GradeItems;
-use crate::domain::grades_overview::GradeOverview;
-use crate::domain::user::User;
-use crate::infrastructure::repositories::db_repository_abstract::DbRepositoryAbstract;
+use crate::adapters::http_and_db_models::course::Course;
+use crate::adapters::http_and_db_models::db_user_course_info::UserCourseInfo;
+use crate::adapters::http_and_db_models::deadline::Deadline;
+use crate::adapters::http_and_db_models::grade::GradeItems;
+use crate::adapters::http_and_db_models::grade_overview::GradeOverview;
+use crate::adapters::http_and_db_models::user::User;
 use crate::adapters::utils::errors::DbErrors;
+
+use super::db_repository_abstract::DbRepositoryAbstract;
 
 
 pub struct DbAdapter {
@@ -284,4 +285,12 @@ impl DbRepositoryAbstract for DbAdapter {
 
         Ok(())
     }
+    
+    async fn delete_document(&self, token: &String) -> Result<(), mongodbErr> {
+        self.collection.delete_one(doc! { "token": token }, None).await?;
+        println!("Document deleted!");
+
+        Ok(())
+    }
+    
 }

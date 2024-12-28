@@ -1,11 +1,13 @@
-use actix_web::{get, post, web, HttpResponse};
+use actix_web::{delete, get, post, web, HttpResponse};
 use mongodb::{bson::Document, Collection};
 use tokio::task;
-use crate::application::repositories::sync_service_abstract::SyncServiceAbstract;
+use crate::adapters::api::info_payloads::Tokens;
+use crate::adapters::db::db_repository_abstract::DbRepositoryAbstract;
+use crate::adapters::http::http_client_repository::ApiClient;
+use crate::application::interfaces::sync_service_abstract::SyncServiceAbstract;
 use crate::application::services::sync_service::SyncService;
-use crate::{adapters::db::db_adapter::DbAdapter, adapters::api::client::ApiClient, infrastructure::repositories::db_repository_abstract::DbRepositoryAbstract};
+use crate::adapters::db::db_adapter::DbAdapter;
 use crate::adapters::utils::errors::DbErrors;
-use crate::domain::auth_notification_tokens::Tokens;
 
 #[post("/add_token")]
 async fn check_token(form: web::Json<Tokens>, db: web::Data<Collection<Document>>) -> HttpResponse {
@@ -151,4 +153,16 @@ async fn get_grades_overview(token: web::Path<String>, db: web::Data<Collection<
             }
         }
     }
+}
+
+#[delete("/delete_document/{token}")]
+async fn delete_docment(token: web::Path<String>, db: web::Data<Collection<Document>>) -> HttpResponse {
+    let token = token.into_inner();
+    let db = DbAdapter::new(db.get_ref().clone());
+
+    match db.delete_document(&token).await {
+        Ok(_) => HttpResponse::Ok().body("Document removed"),
+        Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
+    }
+    
 }

@@ -32,7 +32,7 @@ impl TokenRepositoryAbstract for DbAdapter {
                         if let Some(courses_info) = doc.get_array("courses").ok() {
                             let courses: Vec<Course> = courses_info.iter().filter_map(|course| bson::from_bson(course.clone()).ok()).collect();
                             tokens_and_info.push(UserCourseInfo {
-                                token: token.to_string(),
+                                token: Some(token.to_string()),
                                 user_id: user_id,
                                 courses,
                             });
@@ -95,5 +95,51 @@ impl TokenRepositoryAbstract for DbAdapter {
 
         Ok(())
     }
+    
+    async fn get_user_id(&self, token: &String) -> Result<String, mongodbErr> {
+        let filter = doc! {
+            "token": token,
+            "user_info": { "$exists": true }
+        };
+    
+        let mut cursor = self.collection.find(filter, None).await?;
+        let mut user_id = String::new();
+        while let Some(doc) = cursor.try_next().await? {
+            if let Ok(user_info_doc) = doc.get_document("user_info") {
+                if let Some(bson::Bson::String(uid)) = user_info_doc.get("user_id") {
+                    user_id = uid.to_string();
+                }
+            }
+        }
+        Ok(user_id)
+    }
+    
+    async fn get_user_id_and_courses_id(&self, token: &String) -> Result<UserCourseInfo, mongodbErr> {
+        let mut user_id_and_courses = UserCourseInfo {
+            token: None,
+            user_id: 0,
+            courses: Vec::new(),
+        };
+        let filter = doc! {"token": {"$exists": true}, "user_info": {"$exists": true}, "courses": {"$exists": true}};
+        let mut cursor = self.collection.find(filter, None).await?;
+        while let Some(doc) = cursor.try_next().await? {
+                if let Some(user_info) = doc.get_document("user_info").ok() {
+                    if let Some(user_id) = user_info.get_i64("userid").ok() {
+                        if let Some(courses_info) = doc.get_array("courses").ok() {
+                            let courses: Vec<Course> = courses_info.iter().filter_map(|course| bson::from_bson(course.clone()).ok()).collect();
+                            user_id_and_courses = UserCourseInfo {
+                                token: None,
+                                user_id,
+                                courses,
+                            };
+                        }
+                    }
+                }
+            
+        }
+        Ok(user_id_and_courses)
+    }
+    
+    
     
 }

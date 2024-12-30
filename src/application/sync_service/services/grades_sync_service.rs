@@ -12,9 +12,10 @@ impl SyncGradesWithDatabase for SyncService {
         for vector in vectors {
             let courses = vector.courses;
             let mut grades_data = Vec::new();
+            let token = vector.token.unwrap_or_default();
 
             for course in courses {
-                let api_client = ApiClient::new(&vector.token, Some(vector.user_id.to_string()), Some(course.id.to_string()));
+                let api_client = ApiClient::new(&token, Some(vector.user_id.to_string()), Some(course.id.to_string()));
                 let grades = api_client.get_grades().await?;
                 grades.usergrades.clone().into_iter().for_each(|mut grade|{
                     grade.coursename = Some(course.fullname.clone());
@@ -23,7 +24,7 @@ impl SyncGradesWithDatabase for SyncService {
 
             }
 
-            match db.get_grades(&vector.token).await {
+            match db.get_grades(&token).await {
                 Ok(db_grades) => {
                     
                     let mut grades_map_new = HashMap::new();
@@ -42,7 +43,7 @@ impl SyncGradesWithDatabase for SyncService {
                             for (m, k) in j.iter().zip(value.1) {
                                 if m != k {
                                     if let Some(ref tx) = tx {
-                                        let device_token = db.get_device_token(&vector.token).await;
+                                        let device_token = db.get_device_token(&token).await;
                                         match device_token {
                                             Ok(device_token) => {
                                                 let title = format!("{}", m.itemname);
@@ -55,17 +56,17 @@ impl SyncGradesWithDatabase for SyncService {
                                             Err(_e) => (),
                                         }
                                     }
-                                    db.update_grades_info(&vector.token, grades_data.clone()).await?
+                                    db.update_grades_info(&token, grades_data.clone()).await?
                                 }
                             }
                         } else {
-                            db.update_grades_info(&vector.token, grades_data.clone()).await?
+                            db.update_grades_info(&token, grades_data.clone()).await?
                         }
                     }
                 },
                 Err(e) => {
                     match e {
-                        DbErrors::NotFound() => db.update_grades_info(&vector.token, grades_data).await?,
+                        DbErrors::NotFound() => db.update_grades_info(&token, grades_data).await?,
                         DbErrors::DbError(_error) => continue,
                     }
                 },
@@ -79,7 +80,8 @@ impl SyncGradesWithDatabase for SyncService {
         let vectors = db.get_tokens_and_userdid_and_courses().await?;
 
         for vector in vectors.iter() {
-            let api_client = ApiClient::new(&vector.token, None, None);
+            let token = vector.token.clone().unwrap_or_default();
+            let api_client = ApiClient::new(&token, None, None);
             let grades_overview = api_client.get_grades_overview().await?;
             let mut grades = grades_overview.grades;
 
@@ -93,18 +95,18 @@ impl SyncGradesWithDatabase for SyncService {
                 }
             }
 
-            match db.get_grades_overview(&vector.token).await {
+            match db.get_grades_overview(&token).await {
                 Ok(db_grades) => {
                     if grades == db_grades {
                         continue;
                     } else {
-                        db.update_grades_overview(&vector.token, &grades).await?
+                        db.update_grades_overview(&token, &grades).await?
                     }
                     
                 },
                 Err(e) => {
                     match e {
-                        DbErrors::NotFound() => db.update_grades_overview(&vector.token, &grades).await?,
+                        DbErrors::NotFound() => db.update_grades_overview(&token, &grades).await?,
                         DbErrors::DbError(_error) => continue,
                     }
                 },

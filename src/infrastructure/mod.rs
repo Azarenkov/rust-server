@@ -6,6 +6,7 @@ mod web_server;
 
 
 pub async fn server() -> Result<(), Box<dyn Error>>{
+
     let messaging_client = get_messaging_service("service_account_key.json".to_string()).await?;
     let (tx, mut rx) = mpsc::channel::<FcmAdapter>(64);
     
@@ -18,7 +19,6 @@ pub async fn server() -> Result<(), Box<dyn Error>>{
     });
     
     let db = get_database().await;
-
     let service = SyncService::new(db.clone());
 
     tokio::spawn(async move {

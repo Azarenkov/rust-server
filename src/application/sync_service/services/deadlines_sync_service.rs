@@ -15,9 +15,9 @@ impl SyncDeadlinesWithDatabase for SyncService {
         for vector in vectors {
             let courses = vector.courses;
             let mut deadlines_data = Vec::new();
-
+            let token = vector.token.unwrap_or_default();
             for course in courses {
-                let api_client = ApiClient::new(&vector.token, Some(vector.user_id.to_string()), Some(course.id.to_string()));
+                let api_client = ApiClient::new(&token, Some(vector.user_id.to_string()), Some(course.id.to_string()));
                 let deadlines = api_client.get_deadlines().await?;
                 deadlines.events.clone().into_iter().for_each(|mut deadline|{
                     deadline.coursename = Some(course.fullname.clone());
@@ -42,13 +42,13 @@ impl SyncDeadlinesWithDatabase for SyncService {
                 });
             }
 
-            match db.get_deadlines(&vector.token).await {
+            match db.get_deadlines(&token).await {
                 Ok(db_deadlines) => {
                     if let Some(db_deadlines) = db_deadlines {
                         for (deadline, db_deadline) in deadlines_data.iter().zip(db_deadlines.iter()) {
                             if deadline != db_deadline {
                                 if let Some(ref tx) = tx {
-                                    let device_token = db.get_device_token(&vector.token).await;
+                                    let device_token = db.get_device_token(&token).await;
                                     match device_token {
                                         Ok(device_token) => {
                                             let title = format!("{}", deadline.coursename.clone().unwrap_or_default());
@@ -60,19 +60,19 @@ impl SyncDeadlinesWithDatabase for SyncService {
                                         Err(_e) => (),
                                     }
                                 }
-                                db.update_deadline_info(&vector.token, deadlines_data.clone()).await?;
+                                db.update_deadline_info(&token, deadlines_data.clone()).await?;
                                 return Ok(());
                             } else if db_deadline.clone().name.is_empty() {
                                 println!("Empty");
                             }
                         }
                     } else {
-                        db.update_deadline_info(&vector.token, deadlines_data.clone()).await?;
+                        db.update_deadline_info(&token, deadlines_data.clone()).await?;
                     };
                 },
                 Err(e) => {
                     match e {
-                        DbErrors::NotFound() => db.update_deadline_info(&vector.token, deadlines_data).await?,
+                        DbErrors::NotFound() => db.update_deadline_info(&token, deadlines_data).await?,
                         DbErrors::DbError(_error) => continue,
                     }
                 },

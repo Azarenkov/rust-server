@@ -9,4 +9,6 @@ pub trait TokenRepositoryAbstract {
     async fn find_token(&self, token: &String) -> Result<(), DbErrors>;
     async fn add_device_token(&self, token: &String, device_token: &String) -> Result<(), mongodbErr>;
     async fn delete_document(&self, token: &String) -> Result<(), mongodbErr>;
+    async fn get_user_id(&self, token: &String) -> Result<String, mongodbErr>;
+    async fn get_user_id_and_courses_id(&self, token: &String) -> Result<UserCourseInfo, mongodbErr>;
 }

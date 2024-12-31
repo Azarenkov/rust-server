@@ -1,10 +1,10 @@
 use chrono::Utc;
 
-use crate::{adapters::{db::interfaces::{deadline_repository_abstract::DeadlineRepositoryAbstract, token_repository_abstract::TokenRepositoryAbstract}, http::http_client_repository::ApiClient}, application::{new_data_service::{interfaces::add_deadline_abstract::AddDeadlineAbstract, new_data_service::NewDataService}, utils::{errors::SyncError, helpers::{extract_date_and_time, extract_time, parse_time_to_seconds}}}};
+use crate::{adapters::{db::{interfaces::{deadline_repository_abstract::DeadlineRepositoryAbstract, token_repository_abstract::TokenRepositoryAbstract}, model::DbAdapter}, http::http_client_repository::ApiClient}, application::{new_data_service::interfaces::add_deadline_abstract::AddDeadlineAbstract, utils::{errors::SyncError, helpers::{extract_date_and_time, extract_time, parse_time_to_seconds}}}};
 
-impl AddDeadlineAbstract for NewDataService {
-    async fn add_deadline(&self, token: String) -> Result<(), SyncError> {
-        let user_data = self.db.get_user_id_and_courses_id(&token).await?;
+impl AddDeadlineAbstract for DbAdapter {
+    async fn add_deadline(&self, token: &String) -> Result<(), SyncError> {
+        let user_data = self.get_user_id_and_courses_id(&token).await?;
 
         let current_time = Utc::now().with_timezone(&chrono::FixedOffset::east_opt(6 * 3600).unwrap());
         let current_unix_time = current_time.timestamp();
@@ -39,7 +39,7 @@ impl AddDeadlineAbstract for NewDataService {
 
         }
 
-        self.db.update_deadline_info(&token, deadlines_data).await?;
+        self.update_deadline_info(&token, deadlines_data).await?;
         Ok(())
     }
 }

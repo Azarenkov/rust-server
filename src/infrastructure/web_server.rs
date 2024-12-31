@@ -3,12 +3,13 @@ use mongodb::{bson::Document, Collection};
 use actix_web::Error;
 use tokio::sync::mpsc;
 
-use crate::adapters::api::actix_controller::{check_token, delete_docment, get_courses, get_deadlines, get_grades, get_grades_overview, get_user_info};
+use crate::adapters::{api::actix_controller::{check_token, delete_docment, get_courses, get_deadlines, get_grades, get_grades_overview, get_user_info}, db::model::DbAdapter};
 
-pub async fn get_web_server(db: Collection<Document>) -> Result<(), Error> {
+pub async fn get_web_server(db: Collection<Document>, tx: mpsc::Sender<(DbAdapter, String)>) -> Result<(), Error> {
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(db.clone()))
+            .app_data(web::Data::new(tx.clone()))
             .service(check_token)
             .service(get_user_info)
             .service(get_courses)

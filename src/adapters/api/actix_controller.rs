@@ -1,6 +1,6 @@
 use actix_web::{delete, get, post, web, HttpResponse};
 use mongodb::{bson::Document, Collection};
-use tokio::task;
+use tokio::sync::mpsc;
 use crate::adapters::api::info_payloads::Tokens;
 use crate::adapters::db::interfaces::course_repository_abstract::CourseRepositoryAbstract;
 use crate::adapters::db::interfaces::deadline_repository_abstract::DeadlineRepositoryAbstract;
@@ -14,7 +14,7 @@ use crate::application::sync_service::sync_service::SyncService;
 use crate::adapters::utils::errors::DbErrors;
 
 #[post("/add_token")]
-async fn check_token(form: web::Json<Tokens>, db: web::Data<Collection<Document>>) -> HttpResponse {
+async fn check_token(form: web::Json<Tokens>, db: web::Data<Collection<Document>>, tx: web::Data<mpsc::Sender<(DbAdapter, String)>>) -> HttpResponse {
     // let token = token.into_inner();
 
     let token = &form.token;
@@ -23,7 +23,6 @@ async fn check_token(form: web::Json<Tokens>, db: web::Data<Collection<Document>
 
     let db = DbAdapter::new(db.get_ref().clone());
     let api_client = ApiClient::new(&token, None, None);
-
     match api_client.validate_token().await {
         Ok(_) => {
             match db.find_token(&token).await {
@@ -48,11 +47,10 @@ async fn check_token(form: web::Json<Tokens>, db: web::Data<Collection<Document>
                                     if let Some(device_token) = &form.device_token {
                                         match db.add_device_token(token, device_token).await {
                                             Ok(_) => {
-                                                task::spawn(async move {
-                                                    if let Err(e) = service.sync_all_data(None).await {
-                                                        eprintln!("Error syncing data: {:?}", e);
-                                                    }
-                                                });
+                                        
+                                                if let Err(e) = tx.send((db, token.to_string())).await {
+                                                    eprintln!("Error sending message: {:?}", e);
+                                                }
                                                 HttpResponse::Ok().body("Token is valid")
                                             },
                                             Err(e) => HttpResponse::InternalServerError().body(e.to_string())

@@ -106,7 +106,7 @@ impl TokenRepositoryAbstract for DbAdapter {
         let mut user_id = String::new();
         while let Some(doc) = cursor.try_next().await? {
             if let Ok(user_info_doc) = doc.get_document("user_info") {
-                if let Some(bson::Bson::String(uid)) = user_info_doc.get("user_id") {
+                if let Ok(uid) = user_info_doc.get_i64("userid") {
                     user_id = uid.to_string();
                 }
             }
@@ -120,7 +120,7 @@ impl TokenRepositoryAbstract for DbAdapter {
             user_id: 0,
             courses: Vec::new(),
         };
-        let filter = doc! {"token": {"$exists": true}, "user_info": {"$exists": true}, "courses": {"$exists": true}};
+        let filter = doc! {"token": token, "user_info": {"$exists": true}, "courses": {"$exists": true}};
         let mut cursor = self.collection.find(filter, None).await?;
         while let Some(doc) = cursor.try_next().await? {
                 if let Some(user_info) = doc.get_document("user_info").ok() {

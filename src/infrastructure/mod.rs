@@ -1,6 +1,6 @@
-use std::time::Duration;
-use tokio::{sync::mpsc, task, time::sleep};
-use crate::{adapters::{db::{db_connection::get_database, model::DbAdapter}, messaging::{fcm_adapter::FcmAdapter, fcm_connection::get_messaging_service}}, application::{new_data_service::interfaces::add_service_abstract::AddServiceAbstract, sync_service::{interfaces::sync_service_abstract::SyncServiceAbstract, sync_service::SyncService}}};
+use std::{sync::Arc, time::Duration};
+use tokio::{sync::{mpsc, Semaphore}, task, time::sleep};
+use crate::{adapters::{db::db_connection::get_database, messaging::{fcm_adapter::FcmAdapter, fcm_connection::get_messaging_service}}, application::sync_service::{interfaces::sync_service_abstract::SyncServiceAbstract, sync_service::SyncService}};
 use std::error::Error;
 mod web_server;
 
@@ -35,18 +35,8 @@ pub async fn server() -> Result<(), Box<dyn Error>>{
     });
 
 
-    let (new_tx, mut new_rx): (mpsc::Sender<(DbAdapter, String)>, mpsc::Receiver<(DbAdapter, String)>) = mpsc::channel(100);
+    let semaphore = Arc::new(Semaphore::new(15));
 
-    tokio::spawn(async move {
-        while let Some(data) = new_rx.recv().await {
-            let db = data.0;
-            let token = data.1;
-            if let Err(e) = db.add_new_data(&token).await {
-                eprintln!("Error adding new data: {:?}", e);
-            }
-        }
-    });
-
-    web_server::get_web_server(db.clone(), new_tx).await?;
+    web_server::get_web_server(db.clone(), semaphore).await?;
     Ok(())
 }

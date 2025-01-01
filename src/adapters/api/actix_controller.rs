@@ -1,6 +1,7 @@
+use std::sync::Arc;
 use actix_web::{delete, get, post, web, HttpResponse};
 use mongodb::{bson::Document, Collection};
-use tokio::sync::mpsc;
+use tokio::sync::Semaphore;
 use crate::adapters::api::info_payloads::Tokens;
 use crate::adapters::db::interfaces::course_repository_abstract::CourseRepositoryAbstract;
 use crate::adapters::db::interfaces::deadline_repository_abstract::DeadlineRepositoryAbstract;
@@ -9,15 +10,16 @@ use crate::adapters::db::interfaces::token_repository_abstract::TokenRepositoryA
 use crate::adapters::db::interfaces::user_repository_abstract::UserRepositoryAbstract;
 use crate::adapters::db::model::DbAdapter;
 use crate::adapters::http::http_client_repository::ApiClient;
+use crate::application::new_data_service::interfaces::add_service_abstract::AddServiceAbstract;
 use crate::application::sync_service::interfaces::sync_service_abstract::SyncServiceAbstract;
 use crate::application::sync_service::sync_service::SyncService;
 use crate::adapters::utils::errors::DbErrors;
 
 #[post("/add_token")]
-async fn check_token(form: web::Json<Tokens>, db: web::Data<Collection<Document>>, tx: web::Data<mpsc::Sender<(DbAdapter, String)>>) -> HttpResponse {
+async fn check_token(form: web::Json<Tokens>, db: web::Data<Collection<Document>>, semaphore: web::Data<Arc<Semaphore>>) -> HttpResponse {
     // let token = token.into_inner();
 
-    let token = &form.token;
+    let token = form.token.clone();
 
     let service = SyncService::new(db.get_ref().clone());
 
@@ -28,7 +30,7 @@ async fn check_token(form: web::Json<Tokens>, db: web::Data<Collection<Document>
             match db.find_token(&token).await {
                 Ok(_) => {
                     if let Some(device_token) = &form.device_token {
-                        match db.add_device_token(token, device_token).await {
+                        match db.add_device_token(&token, device_token).await {
                             Ok(_) => {
                                 HttpResponse::Ok().body("Token is valid")
                             },
@@ -45,12 +47,19 @@ async fn check_token(form: web::Json<Tokens>, db: web::Data<Collection<Document>
                             match db.add_token(&token).await {
                                 Ok(_) => {
                                     if let Some(device_token) = &form.device_token {
-                                        match db.add_device_token(token, device_token).await {
+                                        match db.add_device_token(&token, device_token).await {
                                             Ok(_) => {
+                                                let semaphore = semaphore.clone();
+                                                
+                                                tokio::task::spawn(async move {
+                                                    let permit = semaphore.acquire().await.unwrap();
+                                                    if let Err(e) = db.add_new_data(&token).await {
+                                                        eprintln!("Error adding new data: {:?}", e);
+                                                    }
+                                                    drop(permit);
+                                                });
                                         
-                                                if let Err(e) = tx.send((db, token.to_string())).await {
-                                                    eprintln!("Error sending message: {:?}", e);
-                                                }
+                                                
                                                 HttpResponse::Ok().body("Token is valid")
                                             },
                                             Err(e) => HttpResponse::InternalServerError().body(e.to_string())

@@ -1,15 +1,17 @@
+use std::sync::Arc;
+
 use actix_web::{web, App, HttpServer};
 use mongodb::{bson::Document, Collection};
 use actix_web::Error;
-use tokio::sync::mpsc;
+use tokio::sync::Semaphore;
 
 use crate::adapters::{api::actix_controller::{check_token, delete_docment, get_courses, get_deadlines, get_grades, get_grades_overview, get_user_info}, db::model::DbAdapter};
 
-pub async fn get_web_server(db: Collection<Document>, tx: mpsc::Sender<(DbAdapter, String)>) -> Result<(), Error> {
+pub async fn get_web_server(db: Collection<Document>, semaphore: Arc<Semaphore>) -> Result<(), Error> {
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(db.clone()))
-            .app_data(web::Data::new(tx.clone()))
+            .app_data(web::Data::new(semaphore.clone()))
             .service(check_token)
             .service(get_user_info)
             .service(get_courses)

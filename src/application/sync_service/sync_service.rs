@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use mongodb::bson::{self};
 use tokio::sync::mpsc;
 use crate::adapters::messaging::fcm_adapter::FcmAdapter;
@@ -18,6 +19,7 @@ impl SyncService {
     }
 }
 
+#[async_trait]
 impl SyncServiceAbstract for SyncService {
 
     async fn sync_all_data(&self, tx: Option<mpsc::Sender<FcmAdapter>>) -> Result<(), SyncError> {

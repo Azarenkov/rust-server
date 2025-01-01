@@ -1,8 +1,10 @@
+use async_trait::async_trait;
 use futures_util::TryStreamExt;
 use mongodb::{bson::{self, doc}, error::Error as mongodbErr};
 
 use crate::adapters::{db::{interfaces::token_repository_abstract::TokenRepositoryAbstract, model::DbAdapter}, http_and_db_models::{course::Course, db_user_course_info::UserCourseInfo}, utils::errors::DbErrors};
 
+#[async_trait]
 impl TokenRepositoryAbstract for DbAdapter {
     
     async fn get_tokens_and_ids(&self) -> Result<Vec<(String, String)>, mongodbErr> {

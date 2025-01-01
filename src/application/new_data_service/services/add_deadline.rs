@@ -1,7 +1,9 @@
+use async_trait::async_trait;
 use chrono::Utc;
 
 use crate::{adapters::{db::{interfaces::{deadline_repository_abstract::DeadlineRepositoryAbstract, token_repository_abstract::TokenRepositoryAbstract}, model::DbAdapter}, http::http_client_repository::ApiClient}, application::{new_data_service::interfaces::add_deadline_abstract::AddDeadlineAbstract, utils::{errors::SyncError, helpers::{extract_date_and_time, extract_time, parse_time_to_seconds}}}};
 
+#[async_trait]
 impl AddDeadlineAbstract for DbAdapter {
     async fn add_deadline(&self, token: &String) -> Result<(), SyncError> {
         let user_data = self.get_user_id_and_courses_id(&token).await?;

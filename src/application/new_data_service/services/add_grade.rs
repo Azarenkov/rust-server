@@ -1,5 +1,8 @@
+use async_trait::async_trait;
+
 use crate::{adapters::{db::{interfaces::{grade_repository_abstract::GradeRepositoryAbstract, token_repository_abstract::TokenRepositoryAbstract}, model::DbAdapter}, http::http_client_repository::ApiClient}, application::{new_data_service::interfaces::add_grade_abstract::AddGradeAbstact, utils::errors::SyncError}};
 
+#[async_trait]
 impl AddGradeAbstact for DbAdapter {
     async fn add_grade(&self, token: &String) -> Result<(), SyncError> {
         let user_data = self.get_user_id_and_courses_id(&token).await?;

@@ -1,8 +1,10 @@
+use async_trait::async_trait;
 use chrono::Utc;
 use tokio::sync::mpsc;
 
 use crate::{adapters::{db::{interfaces::{deadline_repository_abstract::DeadlineRepositoryAbstract, token_repository_abstract::TokenRepositoryAbstract}, model::DbAdapter}, http::http_client_repository::ApiClient, messaging::fcm_adapter::FcmAdapter, utils::errors::DbErrors}, application::{sync_service::{interfaces::sync_deadlines_abstract::SyncDeadlinesWithDatabase, sync_service::SyncService}, utils::{errors::SyncError, helpers::{extract_date_and_time, extract_time, parse_time_to_seconds, tx_sender}}}};
 
+#[async_trait]
 impl SyncDeadlinesWithDatabase for SyncService {
     async fn sync_deadlines_with_database(&self, tx: Option<mpsc::Sender<FcmAdapter>>) -> Result<(), SyncError> {
 

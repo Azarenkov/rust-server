@@ -1,5 +1,8 @@
+use async_trait::async_trait;
+
 use crate::{adapters::{db::{interfaces::{course_repository_abstract::CourseRepositoryAbstract, token_repository_abstract::TokenRepositoryAbstract}, model::DbAdapter}, http::http_client_repository::ApiClient}, application::{new_data_service::interfaces::add_course_abstract::AddCourseAbstract, utils::errors::SyncError}};
 
+#[async_trait]
 impl AddCourseAbstract for DbAdapter {
     async fn add_course(&self, token: &String) -> Result<(), SyncError> {
         let user_id = self.get_user_id(&token).await?;

@@ -1,9 +1,10 @@
+use async_trait::async_trait;
 use tokio::sync::mpsc;
 
 use crate::{adapters::{db::{interfaces::{token_repository_abstract::TokenRepositoryAbstract, user_repository_abstract::UserRepositoryAbstract}, model::DbAdapter}, http::http_client_repository::ApiClient, messaging::fcm_adapter::FcmAdapter, utils::errors::DbErrors}, application::{sync_service::{interfaces::sync_data_abstract::SyncDataWithDatabase, sync_service::SyncService}, utils::{errors::SyncError, helpers::{compare_objects, tx_sender}}}};
 
 
-
+#[async_trait]
 impl SyncDataWithDatabase for SyncService {
     async fn sync_data_with_database(&self, tx: Option<mpsc::Sender<FcmAdapter>>) -> Result<(), SyncError> {
         let db = DbAdapter::new(self.db.clone());

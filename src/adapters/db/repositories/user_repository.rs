@@ -1,8 +1,9 @@
 use crate::adapters::{db::{interfaces::user_repository_abstract::UserRepositoryAbstract, model::DbAdapter}, http_and_db_models::user::User, utils::errors::DbErrors};
+use async_trait::async_trait;
 use futures_util::TryStreamExt;
 use mongodb::{bson::{self, doc, Bson}, error::Error as mongodbErr};
 
-
+#[async_trait]
 impl UserRepositoryAbstract for DbAdapter {
     async fn get_users_tokens(&self) -> Result<Vec<String>, mongodbErr> {
         let mut tokens: Vec<String> = Vec::new();

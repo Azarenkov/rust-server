@@ -1,7 +1,9 @@
+use async_trait::async_trait;
 use mongodb::{bson::{self, doc}, error::Error as mongodbErr};
 
 use crate::adapters::{db::{interfaces::deadline_repository_abstract::DeadlineRepositoryAbstract, model::DbAdapter}, http_and_db_models::deadline::Deadline, utils::errors::DbErrors};
 
+#[async_trait]
 impl DeadlineRepositoryAbstract for DbAdapter {
     async fn get_deadlines(&self, token: &String) -> Result<Option<Vec<Deadline>>, DbErrors> {
         let document = self.collection.find_one(doc! { "token": &token }, None).await.map_err(|e| {

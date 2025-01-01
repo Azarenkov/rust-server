@@ -1,7 +1,9 @@
+use async_trait::async_trait;
 use tokio::sync::mpsc;
 
 use crate::{adapters::{db::{interfaces::{course_repository_abstract::CourseRepositoryAbstract, token_repository_abstract::TokenRepositoryAbstract}, model::DbAdapter}, http::http_client_repository::ApiClient, messaging::fcm_adapter::FcmAdapter, utils::errors::DbErrors}, application::{sync_service::{interfaces::sync_courses_abstract::SyncCoursesWithDatabase, sync_service::SyncService}, utils::{errors::SyncError, helpers::tx_sender}}};
 
+#[async_trait]
 impl SyncCoursesWithDatabase for SyncService {
     async fn sync_courses_with_database(&self, tx: Option<mpsc::Sender<FcmAdapter>>) -> Result<(), SyncError> {
         let db = DbAdapter::new(self.db.clone());

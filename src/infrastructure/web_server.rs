@@ -5,7 +5,7 @@ use mongodb::{bson::Document, Collection};
 use actix_web::Error;
 use tokio::sync::Semaphore;
 
-use crate::adapters::{api::actix_controller::{check_token, delete_docment, get_courses, get_deadlines, get_grades, get_grades_overview, get_user_info}, db::model::DbAdapter};
+use crate::adapters::api::actix_controller::{check_token, delete_docment, get_courses, get_deadlines, get_grades, get_grades_overview, get_user_info};
 
 pub async fn get_web_server(db: Collection<Document>, semaphore: Arc<Semaphore>) -> Result<(), Error> {
     HttpServer::new(move || {

@@ -1,7 +1,9 @@
+use async_trait::async_trait;
 use mongodb::{bson::{self, doc}, error::Error as mongodbErr};
 
 use crate::adapters::{db::{interfaces::grade_repository_abstract::GradeRepositoryAbstract, model::DbAdapter}, http_and_db_models::{grade::GradeItems, grade_overview::GradeOverview}, utils::errors::DbErrors};
 
+#[async_trait]#[async_trait]
 impl GradeRepositoryAbstract for DbAdapter {
     async fn get_grades(&self, token: &String) -> Result<Vec<GradeItems>, DbErrors> {
         let document = self.collection.find_one(doc! { "token": &token }, None).await.map_err(|e| {

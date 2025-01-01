@@ -1,6 +1,8 @@
+use async_trait::async_trait;
 use mongodb::error::Error as mongodbErr;
 use crate::adapters::{http_and_db_models::db_user_course_info::UserCourseInfo, utils::errors::DbErrors};
 
+#[async_trait]
 pub trait TokenRepositoryAbstract {
     async fn get_tokens_and_ids(&self) -> Result<Vec<(String, String)>, mongodbErr>;
     async fn get_tokens_and_userdid_and_courses(&self) -> Result<Vec<UserCourseInfo>, mongodbErr>;

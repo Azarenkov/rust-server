@@ -16,6 +16,7 @@ actix-web = "4"
 openssl = { version = "0.10.64", features = ["vendored"] } 
 fcm-rs = "0.2.0"
 async-trait = "0.1.83"
+mockito = "1.6.1"
 
 [lib]
 name = "rust_server"

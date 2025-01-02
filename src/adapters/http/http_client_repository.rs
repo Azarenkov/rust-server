@@ -12,12 +12,12 @@ use super::helpers::Functions;
 
 
 pub struct ApiClient {
-    client: Client,
-    base_url: String,
-    token: String,
-    format: String,
-    user_id: Option<String>,
-    course_id: Option<String>,
+    pub client: Client,
+    pub base_url: String,
+    pub token: String,
+    pub format: String,
+    pub user_id: Option<String>,
+    pub course_id: Option<String>,
 }
 
 impl ApiClient {

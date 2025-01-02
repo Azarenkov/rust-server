@@ -1,13 +1,13 @@
 use actix_web::{test, web, App};
-use rust_server::adapters::{api::actix_controller::get_user_info, db::db_connection::get_database, http_and_db_models::user::User};
+use rust_server::adapters::{api::actix_controller::get_user_info, db::{db_connection::get_database, model::DbAdapter}, http_and_db_models::user::User};
 use serde_json::Value;
 
-use crate::utils::{db_utils::DbAdapterTest, file_utils::read_from_file};
+use crate::{fixtures::fixtures_run::DbAdabterTestAbstract, utils::file_utils::read_from_file};
 
 #[actix_web::test]
 async fn get_user_info_by_token() {
     let db = get_database().await;
-    let db_test = DbAdapterTest::new(&db).await;
+    let db_test = DbAdapter::new(db.clone());
     let token_test = String::from("1");
 
     // insert data in db

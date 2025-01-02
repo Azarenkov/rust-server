@@ -1,11 +1,12 @@
 use actix_web::{test, web, App};
-use rust_server::adapters::{api::actix_controller::get_courses, db::db_connection::get_database, http_and_db_models::course::Course};
-use crate::utils::db_utils::DbAdapterTest;
+use rust_server::adapters::{api::actix_controller::get_courses, db::{db_connection::get_database, model::DbAdapter}, http_and_db_models::course::Course};
+
+use crate::fixtures::fixtures_run::DbAdabterTestAbstract;
 
 #[actix_web::test]
 async fn get_user_courses_by_token() {
     let db = get_database().await;
-    let db_test = DbAdapterTest::new(&db).await;
+    let db_test = DbAdapter::new(db.clone());
     let token_test = String::from("3");
 
     // insert data in db

@@ -10,21 +10,21 @@ mod tests {
         // Creating mock server
         let mut server = Server::new_async().await;
         let url = server.url();
+        let token = String::from("711abc349948337f8b97cbb01b76adf5");
 
         // Configuration of the server 
         let mock = server.mock("GET", "/webservice/rest/server.php")
             .match_query(mockito::Matcher::AllOf(vec![
-                mockito::Matcher::UrlEncoded("wstoken".into(), "711abc349948337f8b97cbb01b76adf5".into()),
+                mockito::Matcher::UrlEncoded("wstoken".into(), token.clone().into()),
                 mockito::Matcher::UrlEncoded("wsfunction".into(), "core_webservice_get_site_info".into()),
                 mockito::Matcher::UrlEncoded("moodlewsrestformat".into(), "json".into())
             ]))
-            .with_status(200)
+            // .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(r#"{"userid": 1, "fullname": "Test fullname", "username": "Test username"}"#)
             .create_async().await;
         
         // Request
-        let token = String::from("711abc349948337f8b97cbb01b76adf5");
         let client = ApiClient::new_with_base_url(&token, None, None, &url);
         let result = client.get_user().await;
 

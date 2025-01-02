@@ -1,12 +1,10 @@
 use crate::adapters::http::http_client_repository::ApiClient;
 use reqwest::Client;
 
-#[cfg(test)]
 pub trait ApiClientMockAbstract {
     fn new_with_base_url(token: &str, user_id: Option<String>, course_id: Option<String>, base_url: &str) -> Self;
 }
 
-#[cfg(test)]
 impl ApiClientMockAbstract for ApiClient {
      fn new_with_base_url(token: &str, user_id: Option<String>, course_id: Option<String>, base_url: &str) -> Self {
         ApiClient {

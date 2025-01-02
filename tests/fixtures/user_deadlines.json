@@ -1,0 +1,50 @@
+[
+    {
+      "name": "Asynchronous quiz 4 closes",
+      "timeusermidnight": 1735930800,
+      "formattedtime": "Суббота 4 Январь 23:59",
+      "coursename": "Foreign Language 2 (English C1) | Elmira Gerfanova"
+    },
+    {
+      "name": "Point 1 Paragraph (10%) is due",
+      "timeusermidnight": 1735930800,
+      "formattedtime": "Суббота 4 Январь 23:59",
+      "coursename": "Foreign Language 2 (English C1) | Elmira Gerfanova"
+    },
+    {
+      "name": "Worksheet-2 is due",
+      "timeusermidnight": 1736017200,
+      "formattedtime": "Воскресенье 5 Январь 23:59",
+      "coursename": "Calculus 2 | Chigambayeva Diana"
+    },
+    {
+      "name": "Midterm is due",
+      "timeusermidnight": 1736622000,
+      "formattedtime": "Воскресенье 12 Январь 00:00",
+      "coursename": "Calculus 2 | Chigambayeva Diana"
+    },
+    {
+      "name": "Assignment 2 is due",
+      "timeusermidnight": 1735930800,
+      "formattedtime": "Суббота 4 Январь 00:00",
+      "coursename": "Introduction to Programming 2 | Akhmetov Tolegen"
+    },
+    {
+      "name": "Assignment 2 is due",
+      "timeusermidnight": 1735844400,
+      "formattedtime": "Пятница 3 Январь 13:00",
+      "coursename": "Object-Oriented Programming | Orazova Arailym"
+    },
+    {
+      "name": "Group Project is due",
+      "timeusermidnight": 1736017200,
+      "formattedtime": "Воскресенье 5 Январь 00:00",
+      "coursename": "Political Science | Zhanarstanova Maral"
+    },
+    {
+      "name": "Group Project 2 is due",
+      "timeusermidnight": 1738868400,
+      "formattedtime": "Пятница 7 Февраль 12:00",
+      "coursename": "Political Science | Zhanarstanova Maral"
+    }
+  ]

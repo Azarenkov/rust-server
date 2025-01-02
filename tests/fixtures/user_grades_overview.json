@@ -1,0 +1,80 @@
+[
+    {
+      "courseid": 5286,
+      "grade": "97,00",
+      "rawgrade": "97.00000",
+      "course_name": "Physical Education (Volleyball) | Makazhanova Gulshat"
+    },
+    {
+      "courseid": 5256,
+      "grade": "91,00",
+      "rawgrade": "91.00000",
+      "course_name": "Foreign Language 1 (English B2) | Ainur Bakenova"
+    },
+    {
+      "courseid": 5225,
+      "grade": "0,00",
+      "rawgrade": "0.00000",
+      "course_name": "Information and Communication Technologies | Akzharkyn Zholmyrza"
+    },
+    {
+      "courseid": 5121,
+      "grade": "92,00",
+      "rawgrade": "92.00000",
+      "course_name": "Introduction to Programming 1 | Nurlankyzy A."
+    },
+    {
+      "courseid": 5108,
+      "grade": "0,00",
+      "rawgrade": "0.00000",
+      "course_name": "Calculus 1 | Abdilazim Assel"
+    },
+    {
+      "courseid": 5072,
+      "grade": "90,00",
+      "rawgrade": "90.00000",
+      "course_name": "Linear Algebra | Aynur Basheyeva"
+    },
+    {
+      "courseid": 5600,
+      "grade": "0,00",
+      "rawgrade": "0.00000",
+      "course_name": "Physical Education (Table tennis) | Shayakhmetov Nurlybek"
+    },
+    {
+      "courseid": 5566,
+      "grade": "0,00",
+      "rawgrade": "0.00000",
+      "course_name": "Foreign Language 2 (English C1) | Elmira Gerfanova"
+    },
+    {
+      "courseid": 5456,
+      "grade": "0,00",
+      "rawgrade": "0.00000",
+      "course_name": "Calculus 2 | Chigambayeva Diana"
+    },
+    {
+      "courseid": 5448,
+      "grade": "0,00",
+      "rawgrade": "0.00000",
+      "course_name": "Introduction to Programming 2 | Akhmetov Tolegen"
+    },
+    {
+      "courseid": 5443,
+      "grade": "0,00",
+      "rawgrade": "0.00000",
+      "course_name": "Object-Oriented Programming | Orazova Arailym"
+    },
+    {
+      "courseid": 5440,
+      "grade": "0,00",
+      "rawgrade": "0.00000",
+      "course_name": "Political Science | Zhanarstanova Maral"
+    },
+    {
+      "courseid": 5373,
+      "grade": "0,00",
+      "rawgrade": "0.00000",
+      "course_name": "Discrete Mathematics | Aigerim Kussainova"
+    }
+  ]
